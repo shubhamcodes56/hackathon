@@ -1,0 +1,14 @@
+{
+  "table": "audit_logs",
+  "record": {
+    "actor_id": "{{ $json[\"actor_id\"] }}",
+    "actor_user_id": "{{ $json[\"actor_user_id\"] }}",
+    "action": "{{ $json[\"action\"] || \"action_name\" }}",
+    "resource_type": "{{ $json[\"resource_type\"] || \"resource\" }}",
+    "resource_id": "{{ $json[\"resource_id\"] }}",
+    "details": {{ $json[\"details\"] || {} }},
+    "ip_addr": "{{ $json[\"ip_addr\"] }}",
+    "user_agent": "{{ $json[\"user_agent\"] }}",
+    "created_at": "{{ new Date().toISOString() }}"
+  }
+}

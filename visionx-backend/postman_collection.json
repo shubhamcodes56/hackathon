@@ -1,0 +1,24 @@
+{
+  "info": {
+    "name": "VisionX API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Chat",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{ \"message\": \"empty lab near Gate1\" }" },
+        "url": { "raw": "http://localhost:4000/api/chat", "protocol": "http", "host": ["localhost"], "port": "4000", "path": ["api","chat"] }
+      }
+    },
+    {
+      "name": "Move Now",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "http://localhost:4000/api/move-now?location=Gate1", "protocol": "http", "host": ["localhost"], "port": "4000", "path": ["api","move-now"], "query": [{ "key": "location", "value": "Gate1" }] }
+      }
+    }
+  ]
+}

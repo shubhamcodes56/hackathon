@@ -1,22 +1,16 @@
--- CampusGPT VisionX Production PostgreSQL Schema
--- Smart Campus Decision Platform
--- NO INSERTS — only CREATE EXTENSION / TABLE / INDEX / VIEW / FUNCTION
+-- CampusGPT VisionX Clean Schema (single file, idempotent)
+-- Includes required extensions and core tables for VisionX
 
--- Required extensions
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE EXTENSION IF NOT EXISTS postgis;
--- H3 extension name may vary (h3 or h3-pg). Try to create 'h3' if available.
 DO $$ BEGIN
   PERFORM 1 FROM pg_available_extensions WHERE name = 'h3';
   IF FOUND THEN
     EXECUTE 'CREATE EXTENSION IF NOT EXISTS h3';
   END IF;
 EXCEPTION WHEN others THEN
-  -- ignore if extension not available in environment
   RAISE NOTICE 'h3 extension not created (may not be installed)';
 END$$;
-
--- Note: Use UUID primary keys for production-grade identifiers
 
 -- classrooms
 CREATE TABLE IF NOT EXISTS classrooms (
@@ -30,7 +24,7 @@ CREATE TABLE IF NOT EXISTS classrooms (
   ends_at TIMESTAMPTZ,
   gps_lat DOUBLE PRECISION,
   gps_lng DOUBLE PRECISION,
-  gps_h3 BIGINT, -- H3 index as bigint
+  gps_h3 BIGINT,
   confidence NUMERIC(3,2) DEFAULT 0.0 CHECK (confidence BETWEEN 0 AND 1),
   updated_at TIMESTAMPTZ DEFAULT now(),
   geom geometry(POINT,4326)
@@ -110,7 +104,7 @@ CREATE TABLE IF NOT EXISTS chat_logs (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Audit logs (enterprise)
+-- Audit logs (enterprise) with actor_id ensured
 CREATE TABLE IF NOT EXISTS audit_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   actor_id UUID,
@@ -124,7 +118,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- RBAC core (lightweight tables to integrate with app logic)
+-- RBAC core
 CREATE TABLE IF NOT EXISTS apps (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
@@ -160,29 +154,25 @@ CREATE TABLE IF NOT EXISTS user_roles (
   PRIMARY KEY(user_id, role_id)
 );
 
--- Indexes for performance
+-- Indexes
 CREATE INDEX IF NOT EXISTS idx_classrooms_room ON classrooms(room_id);
 CREATE INDEX IF NOT EXISTS idx_classrooms_occupancy ON classrooms(occupancy);
 CREATE INDEX IF NOT EXISTS idx_classrooms_geom ON classrooms USING GIST (geom);
 CREATE INDEX IF NOT EXISTS idx_classrooms_gps_h3 ON classrooms(gps_h3);
-
-
-
 CREATE INDEX IF NOT EXISTS idx_parking_status ON parking_spots(status);
 CREATE INDEX IF NOT EXISTS idx_parking_geom ON parking_spots USING GIST (geom);
 CREATE INDEX IF NOT EXISTS idx_parking_gps_h3 ON parking_spots(gps_h3);
-
 CREATE INDEX IF NOT EXISTS idx_timetable_time ON timetable(start_time, end_time);
 CREATE INDEX IF NOT EXISTS idx_predictions_time ON predictions(target_datetime);
 CREATE INDEX IF NOT EXISTS idx_students_location ON student_profiles(gps_h3);
 CREATE INDEX IF NOT EXISTS idx_chatlogs_user ON chat_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_audit_actor ON audit_logs(actor_id);
 
--- GIN index for JSONB availability/response fields
+-- GIN indexes
 CREATE INDEX IF NOT EXISTS idx_student_availability_gin ON student_profiles USING GIN (availability);
 CREATE INDEX IF NOT EXISTS idx_chatlogs_response_gin ON chat_logs USING GIN (response);
 
--- Views for decision engine
+-- Views
 DROP VIEW IF EXISTS v_available_rooms;
 CREATE VIEW v_available_rooms AS
 SELECT room_id, building, floor, gps_h3, occupancy_pct
@@ -207,10 +197,9 @@ WHERE c.ends_at BETWEEN now() AND now() + INTERVAL '20 minutes'
       AND t2.start_time < c.ends_at + INTERVAL '10 minutes'
   );
 
--- H3 helper indexes (if h3 extension exists)
+-- H3 helper indexes
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'h3') THEN
-    -- create btree indexes on h3 bigint columns for fast equality/range lookups
     EXECUTE 'CREATE INDEX IF NOT EXISTS idx_classrooms_h3 ON classrooms(gps_h3)';
     EXECUTE 'CREATE INDEX IF NOT EXISTS idx_parking_h3 ON parking_spots(gps_h3)';
     EXECUTE 'CREATE INDEX IF NOT EXISTS idx_students_h3 ON student_profiles(gps_h3)';
@@ -261,7 +250,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE;
 
--- Function to compute room proximity using PostGIS (returns rooms within X meters of a lat/lng)
+-- Function to compute room proximity using PostGIS
 CREATE OR REPLACE FUNCTION rooms_within_radius(lat DOUBLE PRECISION, lng DOUBLE PRECISION, meters INTEGER)
 RETURNS TABLE (room_id TEXT, building TEXT, distance_m DOUBLE PRECISION) AS $$
 BEGIN
@@ -275,4 +264,4 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE;
 
--- End of schema
+-- End of clean VisionX schema

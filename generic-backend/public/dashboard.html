@@ -14,6 +14,8 @@
             --text-main: #f8fafc;
             --text-dim: #94a3b8;
             --accent: #22d3ee;
+            --success: #10b981;
+            --danger: #ef4444;
         }
 
         * {
@@ -139,27 +141,13 @@
         }
 
         @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(-20px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
 
         @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
 
         .loader {
@@ -169,83 +157,545 @@
             font-size: 1.5rem;
         }
 
-        .hidden {
-            display: none;
+        .hidden { display: none; }
+
+        /* ── Chat & Key Panel ── */
+        .bottom-panels {
+            margin-top: 2rem;
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
         }
+
+        .chat-panel {
+            flex: 1;
+            background: var(--card-bg);
+            padding: 1.2rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .chat-panel h3 {
+            color: var(--text-dim);
+            margin-bottom: 0.6rem;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05rem;
+        }
+
+        #chatWindow {
+            height: 320px;
+            overflow-y: auto;
+            border-radius: 8px;
+            padding: 0.8rem;
+            background: rgba(0,0,0,0.25);
+            margin-bottom: 0.6rem;
+            scroll-behavior: smooth;
+        }
+
+        .msg {
+            margin-bottom: 0.7rem;
+            line-height: 1.5;
+            font-size: 0.92rem;
+        }
+
+        .msg.user   strong { color: var(--accent); }
+        .msg.bot    strong { color: #a78bfa; }
+        .msg .bubble {
+            display: inline-block;
+            margin-left: 0.4rem;
+        }
+
+        .chat-input-row {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chat-input-row input {
+            flex: 1;
+            padding: 0.65rem 0.9rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.04);
+            color: var(--text-main);
+            font-size: 0.92rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .chat-input-row input:focus {
+            border-color: var(--primary);
+        }
+
+        .chat-input-row button {
+            padding: 0.65rem 1.2rem;
+            border-radius: 8px;
+            background: var(--primary);
+            border: none;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .chat-input-row button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* model row below chat input */
+        #modelRow {
+            margin-top: 0.7rem;
+            display: none;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .model-row-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .model-row-header label {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            white-space: nowrap;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05rem;
+        }
+
+        .model-count-badge {
+            font-size: 0.72rem;
+            background: rgba(99,102,241,0.25);
+            color: #a78bfa;
+            border-radius: 10px;
+            padding: 0.1rem 0.5rem;
+            font-weight: 700;
+        }
+
+        .provider-tag {
+            font-size: 0.72rem;
+            padding: 0.1rem 0.5rem;
+            border-radius: 10px;
+            font-weight: 700;
+            margin-left: auto;
+        }
+        .provider-tag.google { background: rgba(34,211,238,0.18); color: #22d3ee; }
+        .provider-tag.openai { background: rgba(16,185,129,0.18); color: #10b981; }
+
+        #modelSelect {
+            width: 100%;
+            padding: 0.5rem 0.7rem;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            color: var(--text-main);
+            border: 1px solid rgba(255,255,255,0.12);
+            font-size: 0.88rem;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        #modelSelect:focus {
+            border-color: var(--primary);
+        }
+
+        /* Key panel */
+        .key-panel {
+            width: 300px;
+            background: var(--card-bg);
+            padding: 1.2rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .key-panel h3 {
+            color: var(--text-dim);
+            margin-bottom: 0.4rem;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05rem;
+        }
+
+        .key-panel p.hint {
+            color: var(--text-dim);
+            font-size: 0.82rem;
+            margin-bottom: 0.7rem;
+        }
+
+        .key-panel input {
+            width: 100%;
+            padding: 0.6rem 0.8rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.04);
+            color: var(--text-main);
+            font-size: 0.9rem;
+            margin-bottom: 0.6rem;
+            outline: none;
+        }
+
+        .key-panel input:disabled {
+            opacity: 0.6;
+            cursor: default;
+        }
+
+        .key-btn-row {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .key-btn-row button {
+            flex: 1;
+            padding: 0.55rem;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.88rem;
+            transition: opacity 0.2s;
+        }
+
+        #saveKeyBtn  { background: var(--success); color: white; }
+        #clearKeyBtn { background: var(--danger);  color: white; }
+
+        #keyStatus {
+            margin-top: 0.6rem;
+            font-size: 0.82rem;
+            min-height: 1.2em;
+        }
+
+        #keyStatus.ok  { color: var(--success); }
+        #keyStatus.err { color: var(--danger); }
+        #keyStatus.dim { color: var(--text-dim); }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <header>
-            <h1>PostgreSQL User Table</h1>
-            <p class="subtitle">Direct Database Visualization</p>
-        </header>
+<div class="container">
+    <header>
+        <h1>PostgreSQL User Table</h1>
+        <p class="subtitle">Direct Database Visualization</p>
+    </header>
 
-        <div id="loader" class="loader">Fetching records...</div>
+    <div id="loader" class="loader">Fetching records...</div>
 
-        <div id="content" class="hidden">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h3>Synchronized Users</h3>
-                    <div id="total-users" class="value">0</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Database Status</h3>
-                    <div class="value" style="color: #4ade80;">ONLINE</div>
-                </div>
+    <div id="content" class="hidden">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Synchronized Users</h3>
+                <div id="total-users" class="value">0</div>
             </div>
-
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>User Name</th>
-                            <th>Email Address</th>
-                            <th>Record ID</th>
-                            <th>Date Joined</th>
-                        </tr>
-                    </thead>
-                    <tbody id="user-table-body">
-                        <!-- Table rows will appear here -->
-                    </tbody>
-                </table>
+            <div class="stat-card">
+                <h3>Database Status</h3>
+                <div class="value" style="color:#4ade80;">ONLINE</div>
             </div>
         </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>User Name</th>
+                        <th>Email Address</th>
+                        <th>Record ID</th>
+                        <th>Date Joined</th>
+                    </tr>
+                </thead>
+                <tbody id="user-table-body"></tbody>
+            </table>
+        </div>
+
+        <!-- ── Bottom Panels ── -->
+        <div class="bottom-panels">
+
+            <!-- CHAT -->
+            <div class="chat-panel">
+                <h3>🤖 CampusGPT Chat <span id="locationBadge" style="float: right; font-size: 0.75rem; color: var(--accent); font-weight: normal; background: rgba(34, 211, 238, 0.1); padding: 2px 8px; border-radius: 12px; border: 1px solid rgba(34, 211, 238, 0.3);"></span></h3>
+                <div id="chatWindow">
+                    <div id="messages"></div>
+                </div>
+                <div class="chat-input-row">
+                    <input id="chatInput" placeholder="Ask anything... (e.g. empty lab near Gate1)" />
+                    <button id="sendBtn">Send</button>
+                </div>
+                <!-- Model selector — shown after key is saved -->
+                <div id="modelRow">
+                    <div class="model-row-header">
+                        <label>Model</label>
+                        <span id="modelCountBadge" class="model-count-badge" style="display:none"></span>
+                        <span id="providerTag" class="provider-tag" style="display:none"></span>
+                    </div>
+                    <select id="modelSelect"><option value="">— loading models —</option></select>
+                </div>
+            </div>
+
+            <!-- API KEY -->
+            <div class="key-panel">
+                <h3>🔑 LLM API Key</h3>
+                <p class="hint">Paste your <strong style="color:#10b981">OpenAI</strong> (<code>sk-...</code>) or <strong style="color:#22d3ee">Google Gemini</strong> (<code>AIza...</code>) API key. Stored securely on the server — persists across refreshes.</p>
+                <input id="apiKeyInput" type="password" placeholder="sk-..." />
+                <div class="key-btn-row">
+                    <button id="saveKeyBtn">Save Key</button>
+                    <button id="clearKeyBtn">Clear Key</button>
+                </div>
+                <p id="keyStatus" class="dim"></p>
+            </div>
+
+        </div>
     </div>
+</div>
 
-    <script>
-        async function fetchData() {
-            try {
-                const response = await fetch('/api/v1/users');
-                const result = await response.json();
-                const users = result.data.users;
+<script>
+// ────────────────────────────────────────────────
+//  DOM refs
+// ────────────────────────────────────────────────
+const messagesEl  = document.getElementById('messages');
+const chatInput   = document.getElementById('chatInput');
+const sendBtn     = document.getElementById('sendBtn');
+const apiKeyInput = document.getElementById('apiKeyInput');
+const saveKeyBtn  = document.getElementById('saveKeyBtn');
+const clearKeyBtn = document.getElementById('clearKeyBtn');
+const keyStatus   = document.getElementById('keyStatus');
+const modelRow    = document.getElementById('modelRow');
+const modelSelect = document.getElementById('modelSelect');
 
-                document.getElementById('loader').classList.add('hidden');
-                document.getElementById('content').classList.remove('hidden');
-                document.getElementById('total-users').innerText = users.length;
+// ────────────────────────────────────────────────
+//  Location Simulator
+// ────────────────────────────────────────────────
+function getRandomInRange(from, to, fixed) {
+    return (Math.random() * (to - from) + from).toFixed(fixed) * 1;
+}
 
-                const tableBody = document.getElementById('user-table-body');
-                users.forEach((user) => {
-                    const row = document.createElement('tr');
+// Generate random simulated position within IITB campus bounds
+const userLocation = {
+    lat: getRandomInRange(19.1310, 19.1360, 5),
+    lng: getRandomInRange(72.9110, 72.9170, 5),
+    floor: Math.floor(Math.random() * 4) // 0 to 3
+};
 
-                    row.innerHTML = `
-                        <td><span class="user-name">${user.full_name || 'Anonymous'}</span></td>
-                        <td>${user.email}</td>
-                        <td class="user-id">${user.id.substring(0, 18)}...</td>
-                        <td class="user-date">${new Date(user.created_at).toLocaleDateString()}</td>
-                    `;
-                    tableBody.appendChild(row);
-                });
+document.getElementById('locationBadge').innerText = `📍 Floor ${userLocation.floor} | ${userLocation.lat}, ${userLocation.lng}`;
 
-            } catch (err) {
-                console.error('Error fetching data:', err);
-                document.getElementById('loader').innerText = 'Failed to load data. Is the server running?';
-            }
+// ────────────────────────────────────────────────
+//  Table Data
+// ────────────────────────────────────────────────
+async function fetchData() {
+    try {
+        const response = await fetch('/api/v1/users');
+        const result   = await response.json();
+        const users    = result.data.users;
+
+        document.getElementById('loader').classList.add('hidden');
+        document.getElementById('content').classList.remove('hidden');
+        document.getElementById('total-users').innerText = users.length;
+
+        const tableBody = document.getElementById('user-table-body');
+        users.forEach((user) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><span class="user-name">${user.full_name || 'Anonymous'}</span></td>
+                <td>${user.email}</td>
+                <td class="user-id">${user.id.substring(0, 18)}...</td>
+                <td class="user-date">${new Date(user.created_at).toLocaleDateString()}</td>
+            `;
+            tableBody.appendChild(row);
+        });
+
+    } catch (err) {
+        document.getElementById('loader').innerText = '⚠ Failed to load data. Is the server running?';
+    }
+}
+
+fetchData();
+
+// ────────────────────────────────────────────────
+//  Chat helpers
+// ────────────────────────────────────────────────
+function appendMessage(role, text) {
+    const wrap = document.createElement('div');
+    wrap.className = `msg ${role === 'user' ? 'user' : 'bot'}`;
+    wrap.innerHTML = `<strong>${role === 'user' ? 'You' : 'AI'}:</strong><span class="bubble">${text}</span>`;
+    messagesEl.appendChild(wrap);
+    wrap.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+async function callChat(message) {
+    const model = modelSelect.value || 'gpt-3.5-turbo'; // safe fallback
+    const payload = { 
+        model, 
+        messages: [{ role: 'user', content: message }],
+        userLat: userLocation.lat,
+        userLng: userLocation.lng,
+        userFloor: userLocation.floor
+    };
+
+    const r = await fetch('/api/v1/llm/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+
+    const json = await r.json();
+
+    // If the API returned an error object from OpenAI
+    if (!r.ok) {
+        const errMsg = json?.error?.message || json?.error || 'Chat request failed';
+        throw new Error(errMsg);
+    }
+
+    return json?.choices?.[0]?.message?.content || JSON.stringify(json);
+}
+
+sendBtn.addEventListener('click', async () => {
+    const text = chatInput.value.trim();
+    if (!text) return;
+
+    appendMessage('user', text);
+    chatInput.value = '';
+    sendBtn.disabled = true;
+
+    const thinkingEl = document.createElement('div');
+    thinkingEl.className = 'msg bot';
+    thinkingEl.innerHTML = '<strong>AI:</strong><span class="bubble" style="color:var(--text-dim);">Thinking...</span>';
+    messagesEl.appendChild(thinkingEl);
+
+    try {
+        const reply = await callChat(text);
+        thinkingEl.remove();
+        appendMessage('bot', reply);
+    } catch (err) {
+        thinkingEl.remove();
+        appendMessage('bot', `⚠ Error: ${err.message}`);
+    } finally {
+        sendBtn.disabled = false;
+        chatInput.focus();
+    }
+});
+
+// Allow Enter key to send
+chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendBtn.click();
+    }
+});
+
+// ────────────────────────────────────────────────
+//  API Key management
+// ────────────────────────────────────────────────
+function setKeyStatus(msg, type = 'dim') {
+    keyStatus.textContent = msg;
+    keyStatus.className = type; // 'ok' | 'err' | 'dim'
+}
+
+async function loadModels() {
+    try {
+        const r = await fetch('/api/v1/llm/models');
+        if (!r.ok) throw new Error('Could not load models');
+        const j = await r.json();
+        const models = j.models || [];
+        const provider = j.provider || 'openai'; // 'google' or 'openai'
+
+        modelSelect.innerHTML = '';
+        if (!models.length) {
+            modelSelect.innerHTML = '<option value="">No models found</option>';
+            return;
         }
 
-        fetchData();
-    </script>
+        models.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m.id;
+            opt.textContent = m.displayName || m.id;
+            modelSelect.appendChild(opt);
+        });
+
+        // Auto-select a smart default
+        const preferred = provider === 'google'
+            ? ['gemini-1.5-pro', 'gemini-1.5-pro-latest', 'gemini-1.5-flash', 'gemini-pro']
+            : ['gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'];
+        for (const p of preferred) {
+            const found = models.find(m => m.id === p || m.id.startsWith(p));
+            if (found) { modelSelect.value = found.id; break; }
+        }
+
+        // Update badge and provider tag
+        const badge = document.getElementById('modelCountBadge');
+        const ptag  = document.getElementById('providerTag');
+        badge.textContent = `${models.length} models`;
+        badge.style.display = 'inline';
+        ptag.textContent = provider === 'google' ? '🔵 Google Gemini' : '🟢 OpenAI';
+        ptag.className = `provider-tag ${provider === 'google' ? 'google' : 'openai'}`;
+        ptag.style.display = 'inline';
+
+        modelRow.style.display = 'flex';
+    } catch (err) {
+        modelSelect.innerHTML = '<option value="">Failed to load models</option>';
+        modelRow.style.display = 'flex'; // still show the row
+    }
+}
+
+// Called on page load — checks if key already exists on server
+async function checkKeyOnLoad() {
+    try {
+        const resp = await fetch('/api/v1/llm/has-key');
+        const json = await resp.json();
+        if (json.hasKey) {
+            // Key already saved on server — mask the input
+            apiKeyInput.value    = '••••••••••••••••';
+            apiKeyInput.disabled = true;
+            setKeyStatus('✓ API key saved — persists across refreshes', 'ok');
+            await loadModels();
+        } else {
+            apiKeyInput.value    = '';
+            apiKeyInput.disabled = false;
+            setKeyStatus('No key saved yet', 'dim');
+        }
+    } catch {
+        setKeyStatus('Could not reach server', 'err');
+    }
+}
+
+saveKeyBtn.addEventListener('click', async () => {
+    const raw = apiKeyInput.value.trim();
+    if (!raw || raw.startsWith('•')) {
+        return alert('Please enter a valid API key first.');
+    }
+    try {
+        const resp = await fetch('/api/v1/llm/save-key', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key: raw })
+        });
+        if (!resp.ok) throw new Error('Save failed');
+
+        apiKeyInput.value    = '••••••••••••••••';
+        apiKeyInput.disabled = true;
+        setKeyStatus('✓ API key saved — persists across refreshes', 'ok');
+        await loadModels();
+    } catch {
+        setKeyStatus('✗ Failed to save key', 'err');
+    }
+});
+
+clearKeyBtn.addEventListener('click', async () => {
+    try {
+        const resp = await fetch('/api/v1/llm/clear-key', { method: 'POST' });
+        if (!resp.ok) throw new Error('Clear failed');
+
+        apiKeyInput.value    = '';
+        apiKeyInput.disabled = false;
+        modelRow.style.display = 'none';
+        setKeyStatus('Key cleared from server', 'dim');
+    } catch {
+        setKeyStatus('✗ Failed to clear key', 'err');
+    }
+});
+
+// ── Bootstrap ──
+checkKeyOnLoad();
+</script>
 </body>
 
 </html>
