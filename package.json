@@ -1,0 +1,15 @@
+{
+  "name": "campusconnect-monorepo",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "concurrently \"npm:frontend\" \"npm:backend\"",
+    "frontend": "npx http-server frontend -p 3000 -c-1",
+    "backend": "cd backend && npm run start",
+    "install:all": "npm --prefix backend install && npm --prefix frontend install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "http-server": "^14.1.1"
+  }
+}
