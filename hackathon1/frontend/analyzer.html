@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DigiGuard | Notification Analyzer</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: "#003d9b",
+            "primary-container": "#0052cc",
+            surface: "#f8f9fb",
+            "surface-container-low": "#f3f4f6",
+            "surface-container-lowest": "#ffffff",
+            "surface-variant": "#e1e2e4",
+            error: "#ba1a1a",
+            success: "#006c47"
+          },
+          fontFamily: {
+            headline: ["Public Sans", "sans-serif"],
+            body: ["Inter", "sans-serif"]
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    h1, h2, h3 { font-family: 'Public Sans', sans-serif; }
+  </style>
+</head>
+<body class="bg-surface text-slate-900 min-h-screen">
+  <nav class="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="/" class="text-xl font-extrabold tracking-tight">DigiGuard</a>
+      <div class="flex items-center gap-4">
+        <a href="/" class="text-sm font-semibold text-slate-600 hover:text-primary">Home</a>
+        <a href="/analyzer.html" class="text-sm font-semibold text-primary">Analyzer</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-6xl mx-auto px-6 py-10 grid lg:grid-cols-2 gap-8">
+    <section class="bg-surface-container-lowest rounded-2xl p-6 shadow-lg border border-slate-200">
+      <h1 class="text-3xl font-extrabold tracking-tight mb-2">Android Notification Listener Panel</h1>
+      <p class="text-slate-600 mb-6">Implements your listener flow: permission check, app filter, title/text extraction, scam trigger check, and Onion scoring.</p>
+
+      <div class="grid sm:grid-cols-2 gap-4 mb-5">
+        <label class="flex items-center gap-2 text-sm font-semibold"><input id="permission-toggle" type="checkbox" class="rounded border-slate-300" checked /> Notification Access Enabled</label>
+        <label class="flex items-center gap-2 text-sm font-semibold"><input id="preview-toggle" type="checkbox" class="rounded border-slate-300" checked /> Notification Preview Available</label>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-semibold mb-2" for="package-input">Package Name</label>
+        <select id="package-input" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white">
+          <option value="com.whatsapp">com.whatsapp</option>
+          <option value="com.android.mms">com.android.mms</option>
+          <option value="com.instagram.android">com.instagram.android</option>
+          <option value="com.telegram.messenger">com.telegram.messenger</option>
+        </select>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-semibold mb-2" for="sender-input">Notification Title (Sender)</label>
+        <input id="sender-input" type="text" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="XYZ / Bank Alert" />
+      </div>
+
+      <label class="block text-sm font-semibold mb-2" for="notification-input">Notification Text</label>
+      <textarea id="notification-input" rows="8" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Paste message here..."></textarea>
+
+      <div class="grid sm:grid-cols-2 gap-4 mt-4">
+        <div>
+          <label class="block text-sm font-semibold mb-2" for="url-input">URL (optional)</label>
+          <input id="url-input" type="text" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="https://example.com" />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-2" for="file-input">File Extension (optional)</label>
+          <input id="file-input" type="text" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder=".apk" />
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-3 mt-6">
+        <button id="simulate-btn" class="px-5 py-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-700 transition-colors">Simulate onNotificationPosted</button>
+        <button id="analyze-now-btn" class="px-5 py-3 rounded-xl bg-primary text-white font-bold hover:bg-primary-container transition-colors">Analyze Now</button>
+        <button id="clear-btn" class="px-5 py-3 rounded-xl bg-slate-200 text-slate-800 font-bold hover:bg-slate-300 transition-colors">Clear</button>
+      </div>
+
+      <p id="status-text" class="mt-4 text-sm text-slate-500">Ready. Paste text to auto-analyze.</p>
+
+      <div class="mt-6 bg-slate-50 border border-slate-200 rounded-xl p-4">
+        <p class="text-xs text-slate-500">Local Trigger Check (Step 8)</p>
+        <p id="local-flag" class="font-bold text-slate-700">No trigger</p>
+      </div>
+    </section>
+
+    <section class="bg-surface-container-low rounded-2xl p-6 shadow-lg border border-slate-200">
+      <h2 class="text-2xl font-extrabold mb-6">Risk Output</h2>
+
+      <div class="space-y-6">
+        <div>
+          <div class="flex justify-between text-sm font-semibold mb-2"><span>Fraud Probability</span><span id="fraud-percent">0%</span></div>
+          <div class="h-4 bg-slate-200 rounded-full overflow-hidden"><div id="fraud-bar" class="h-full bg-red-500 w-0 transition-all duration-500"></div></div>
+        </div>
+
+        <div>
+          <div class="flex justify-between text-sm font-semibold mb-2"><span>Security Confidence</span><span id="security-percent">100%</span></div>
+          <div class="h-4 bg-slate-200 rounded-full overflow-hidden"><div id="security-bar" class="h-full bg-emerald-500 w-full transition-all duration-500"></div></div>
+        </div>
+
+        <div class="grid sm:grid-cols-3 gap-3">
+          <div class="bg-white rounded-xl p-4 border border-slate-200">
+            <p class="text-xs text-slate-500">Pattern Layer</p>
+            <p id="l1-score" class="text-xl font-extrabold">0</p>
+          </div>
+          <div class="bg-white rounded-xl p-4 border border-slate-200">
+            <p class="text-xs text-slate-500">Urgency Layer</p>
+            <p id="l2-score" class="text-xl font-extrabold">0</p>
+          </div>
+          <div class="bg-white rounded-xl p-4 border border-slate-200">
+            <p class="text-xs text-slate-500">Sandbox Layer</p>
+            <p id="l3-score" class="text-xl font-extrabold">0</p>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl p-4 border border-slate-200">
+          <p class="text-xs text-slate-500">Decision</p>
+          <p id="decision-text" class="text-lg font-extrabold">SAFE_GREEN</p>
+          <p id="guidance-text" class="text-sm text-slate-600 mt-1">No strong scam indicators detected.</p>
+        </div>
+      </div>
+
+      <div class="mt-7 bg-white rounded-xl p-4 border border-slate-200">
+        <h3 class="text-lg font-extrabold mb-3">Flow Mapped To App Logic</h3>
+        <ol class="text-sm text-slate-700 list-decimal pl-5 space-y-1">
+          <li>Notification arrives</li>
+          <li>Listener is triggered</li>
+          <li>Check notification access + preview availability</li>
+          <li>Filter package (WhatsApp/SMS only)</li>
+          <li>Extract sender title + message text</li>
+          <li>Run local trigger scan (urgent/click/suspended/kyc/prize)</li>
+          <li>Run Onion layers and aggregate score</li>
+          <li>Return Fraud Percentage + Security Percentage</li>
+          <li>Raise alert if scam probability is high</li>
+        </ol>
+      </div>
+
+      <div class="mt-4 bg-red-50 rounded-xl p-4 border border-red-200">
+        <h3 class="text-sm font-extrabold text-red-700 mb-1">Android Limitations</h3>
+        <p class="text-xs text-red-700">No preview means no readable content. Media-only notifications may provide limited data. Full chat history is not accessed.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="./js/analyzer.js"></script>
+</body>
+</html>
