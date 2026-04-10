@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusFlow — Your Campus, One Smart Decision at a Time</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Fixed Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-left">
+            <div class="logo-icon">C</div>
+            <span class="logo-text">CAMPUSFLOW</span>
+        </div>
+        <div class="nav-right">
+            <div class="live-badge">
+                <span class="live-dot"></span>
+                LIVE
+            </div>
+            <button class="nav-icon-btn" id="notifBtn" aria-label="Notifications">
+                <i class="fas fa-bell"></i>
+                <span class="notif-dot"></span>
+            </button>
+            <div class="avatar">A</div>
+        </div>
+    </nav>
+
+    <!-- Dot Navigation (Right Side) -->
+    <div class="dot-nav" id="dotNav">
+        <div class="dot active" data-section="hero"></div>
+        <div class="dot" data-section="signals"></div>
+        <div class="dot" data-section="nextmove"></div>
+        <div class="dot" data-section="alerts"></div>
+        <div class="dot" data-section="density"></div>
+        <div class="dot" data-section="spaces"></div>
+        <div class="dot" data-section="why"></div>
+        <div class="dot" data-section="features"></div>
+    </div>
+
+    <!-- ========== HERO SECTION ========== -->
+    <section class="section hero-section" id="hero">
+        <div class="hero-grid">
+            <div class="hero-left">
+                <div class="system-status">
+                    <span class="status-dot green"></span>
+                    <span class="status-text">SYSTEM ACTIVE</span>
+                </div>
+                <div class="time-display">
+                    <span class="time-big" id="currentTime">6:39</span>
+                    <div class="time-meta">
+                        <span class="time-period" id="timePeriod">PM</span>
+                        <span class="time-date" id="currentDate">Friday, Apr 10</span>
+                    </div>
+                </div>
+                <h1 class="hero-heading">
+                    Good Evening,<br>
+                    <span class="text-red" id="greeting-name">Arjun.</span>
+                </h1>
+                <p class="hero-sub">Your campus. One intelligent decision at a time.<br>Here's what we recommend right now.</p>
+                <div class="hero-actions">
+                    <button class="btn btn-primary" id="startPlanBtn">
+                        <i class="fas fa-play"></i> Start This Plan
+                    </button>
+                    <button class="btn btn-outline" id="exploreCampusBtn">
+                        <i class="fas fa-compass"></i> Explore Campus
+                    </button>
+                </div>
+                <div class="info-callout">
+                    <span class="callout-icon"><i class="fas fa-info-circle"></i></span>
+                    <span>We combine your timetable, parking, and live room data to suggest your best next move.</span>
+                </div>
+            </div>
+            <div class="hero-right">
+                <div class="next-move-card" id="nextMoveCard">
+                    <div class="nmc-header">
+                        <div class="nmc-title">
+                            <i class="fas fa-magic"></i>
+                            <span>Your Next Move</span>
+                        </div>
+                        <span class="badge badge-red">PICK</span>
+                    </div>
+                    <h2 class="nmc-location" id="nmcLocation">LT Block (Lecture Hall Complex)</h2>
+                    <p class="nmc-sub" id="nmcSub">LT-214B · Data Structures Lab</p>
+                    <div class="nmc-metrics">
+                        <div class="metric-tile">
+                            <div class="metric-icon red"><i class="fas fa-clock"></i></div>
+                            <div class="metric-label">STARTS IN</div>
+                            <div class="metric-value" id="metricStartsIn">18 min</div>
+                        </div>
+                        <div class="metric-tile">
+                            <div class="metric-icon green"><i class="fas fa-walking"></i></div>
+                            <div class="metric-label">WALK TIME</div>
+                            <div class="metric-value" id="metricWalk">6 min</div>
+                        </div>
+                        <div class="metric-tile">
+                            <div class="metric-icon red"><i class="fas fa-parking"></i></div>
+                            <div class="metric-label">PARKING</div>
+                            <div class="metric-value" id="metricParking">Gate 2 — 12 spots</div>
+                        </div>
+                        <div class="metric-tile">
+                            <div class="metric-icon red"><i class="fas fa-chair"></i></div>
+                            <div class="metric-label">ROOM</div>
+                            <div class="metric-value" id="metricRoom">60% filled</div>
+                        </div>
+                    </div>
+                    <div class="confidence-bar">
+                        <span class="conf-label">CONFIDENCE</span>
+                        <div class="conf-track">
+                            <div class="conf-fill" id="confFill" style="width: 94%"></div>
+                        </div>
+                        <span class="conf-value" id="confValue">94%</span>
+                    </div>
+                    <div class="nmc-tip">
+                        <i class="fas fa-lightbulb"></i>
+                        <span id="nmcTip">Arrive 5 min early — front bench seating available near projector</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== THREE SIGNALS SECTION ========== -->
+    <section class="section signals-section" id="signals">
+        <div class="section-center">
+            <h2 class="section-heading-center">Three signals.<br><span class="text-red">One smart decision.</span></h2>
+            <p class="section-sub-center">CampusFlow combines your timetable, real-time room data, and parking availability to create one clear recommendation — so you never have to guess.</p>
+            <div class="info-callout center-callout">
+                <span class="callout-icon"><i class="fas fa-info-circle"></i></span>
+                <span>We take 3 live inputs — your schedule, room data, and parking — and merge them into one optimized action.</span>
+            </div>
+        </div>
+        <div class="signal-cards">
+            <div class="signal-card" data-aos>
+                <div class="signal-icon red-bg"><i class="fas fa-calendar-alt"></i></div>
+                <h3>Timetable</h3>
+                <p>Your classes, labs, and free periods</p>
+                <span class="signal-badge synced"><i class="fas fa-check"></i> SYNCED</span>
+            </div>
+            <div class="signal-plus">+</div>
+            <div class="signal-card" data-aos>
+                <div class="signal-icon green-bg"><i class="fas fa-building"></i></div>
+                <h3>Classrooms</h3>
+                <p>Live occupancy % and room status</p>
+                <span class="signal-badge live"><span class="live-dot-sm"></span> LIVE</span>
+            </div>
+            <div class="signal-plus">+</div>
+            <div class="signal-card" data-aos>
+                <div class="signal-icon red-bg"><i class="fas fa-parking"></i></div>
+                <h3>Parking</h3>
+                <p>Real-time lot availability at every gate</p>
+                <span class="signal-badge live"><span class="live-dot-sm"></span> LIVE</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== YOUR NEXT MOVE SECTION ========== -->
+    <section class="section nextmove-section" id="nextmove">
+        <div class="nextmove-card-center">
+            <div class="nextmove-icon-big"><i class="fas fa-map-marker-alt"></i></div>
+            <h2>Your Next Move</h2>
+            <p>A single, intelligent recommendation tailored to your exact context — right now.</p>
+        </div>
+        <div class="steps-row">
+            <div class="step-item" data-aos>
+                <div class="step-number">01</div>
+                <h4>Analyze</h4>
+                <p>Cross-reference your schedule with live campus data</p>
+            </div>
+            <div class="step-item" data-aos>
+                <div class="step-number">02</div>
+                <h4>Optimize</h4>
+                <p>Find the fastest route, best room, and open parking</p>
+            </div>
+            <div class="step-item" data-aos>
+                <div class="step-number">03</div>
+                <h4>Recommend</h4>
+                <p>Deliver one clear action — start your plan in one tap</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== SMART ALERTS SECTION ========== -->
+    <section class="section alerts-section" id="alerts">
+        <div class="alerts-grid">
+            <div class="alerts-left">
+                <div class="section-label">
+                    <span class="label-line"></span>
+                    <span class="label-icon"><i class="fas fa-bell"></i></span>
+                    <span class="label-text">SMART ALERTS</span>
+                </div>
+                <h2 class="section-heading">Stay ahead of<br><span class="text-red">campus chaos.</span></h2>
+                <p class="section-sub">CampusFlow detects congestion, scheduling clashes, and parking rushes before they affect you.</p>
+                <div class="info-callout">
+                    <span class="callout-icon"><i class="fas fa-info-circle"></i></span>
+                    <span>Our alert system detects crowd buildup before it happens — so you can plan smarter.</span>
+                </div>
+                <!-- Timeline -->
+                <div class="timeline" id="timeline">
+                    <!-- populated by JS -->
+                </div>
+            </div>
+            <div class="alerts-right">
+                <div class="alert-detail-card" id="alertDetail">
+                    <div class="alert-icon-big"><i class="fas fa-exclamation-triangle"></i></div>
+                    <span class="badge badge-orange">UPCOMING ALERT</span>
+                    <h3 id="alertTitle">Busy Period Ahead</h3>
+                    <p class="alert-time" id="alertTime">10:30 AM — 11:15 AM</p>
+                    <p class="alert-desc" id="alertDesc">Heavy foot traffic expected near Central Library and Canteen Block. Gate 1 & Gate 2 parking will be near full. Canteen rush expected after 1:30 PM — plan lunch earlier.</p>
+                    <div class="congestion-bar">
+                        <span class="cong-label">CONGESTION LEVEL</span>
+                        <div class="cong-track">
+                            <div class="cong-fill" id="congFill" style="width: 82%"></div>
+                        </div>
+                        <div class="cong-range">
+                            <span>0%</span>
+                            <span class="cong-value" id="congValue">82%</span>
+                        </div>
+                    </div>
+                    <div class="affected-areas" id="affectedAreas">
+                        <span class="area-label">AFFECTED AREAS</span>
+                        <div class="area-tags">
+                            <span class="area-tag">CENTRAL LIBRARY</span>
+                            <span class="area-tag">CANTEEN BLOCK</span>
+                            <span class="area-tag">GATE 1 PARKING</span>
+                            <span class="area-tag">AUDITORIUM AREA</span>
+                        </div>
+                    </div>
+                    <div class="alt-route-btn">
+                        <i class="fas fa-route"></i>
+                        <span>View Alternative Route</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== CAMPUS DENSITY SECTION ========== -->
+    <section class="section density-section" id="density">
+        <div class="section-label">
+            <span class="label-line"></span>
+            <span class="label-icon"><i class="fas fa-th"></i></span>
+            <span class="label-text">CAMPUS DENSITY</span>
+        </div>
+        <h2 class="section-heading">Know when it's<br><span class="text-red">too crowded.</span></h2>
+        <p class="section-sub">Real-time crowd tracking across campus zones. We predict when areas will get busy so you can plan ahead.</p>
+        <div class="info-callout wide-callout">
+            <span class="callout-icon"><i class="fas fa-info-circle"></i></span>
+            <span>We track foot traffic and predict crowd surges — helping you avoid rush at canteen, parking, or library.</span>
+        </div>
+        <div class="density-grid" id="densityGrid">
+            <!-- populated by JS -->
+        </div>
+    </section>
+
+    <!-- ========== QUIET SPACES SECTION ========== -->
+    <section class="section spaces-section" id="spaces">
+        <div class="spaces-header">
+            <div class="spaces-header-left">
+                <div class="section-label">
+                    <span class="label-line"></span>
+                    <span class="label-icon"><i class="fas fa-leaf"></i></span>
+                    <span class="label-text">QUIET SPACES</span>
+                </div>
+                <h2 class="section-heading">Find your<br><span class="text-red">calm corner.</span></h2>
+                <p class="section-sub">Discover available study spots, quiet zones, and open areas across campus — updated in real time.</p>
+                <div class="info-callout">
+                    <span class="callout-icon"><i class="fas fa-info-circle"></i></span>
+                    <span>We identify quieter study zones in real-time — so you always find a seat when you need one.</span>
+                </div>
+            </div>
+            <div class="spaces-header-right">
+                <button class="filter-btn active" id="filterAll">
+                    <i class="fas fa-th-large"></i> All Spaces
+                </button>
+                <button class="filter-btn" id="filterQuiet">
+                    <i class="fas fa-volume-mute"></i> Quiet Only
+                </button>
+            </div>
+        </div>
+        <div class="spaces-grid" id="spacesGrid">
+            <!-- populated by JS -->
+        </div>
+        <div class="explore-map-btn">
+            <i class="fas fa-map"></i>
+            <span>Explore Full Campus Map</span>
+            <i class="fas fa-arrow-right"></i>
+        </div>
+    </section>
+
+    <!-- ========== WHY CAMPUSFLOW SECTION ========== -->
+    <section class="section why-section" id="why">
+        <div class="section-label center-label">
+            <span class="label-line"></span>
+            <span class="label-icon"><i class="fas fa-heart"></i></span>
+            <span class="label-text">WHY CAMPUSFLOW</span>
+        </div>
+        <h2 class="section-heading-center">One tap. One decision.<br><span class="text-red">Zero confusion.</span></h2>
+        <p class="section-sub-center">CampusFlow saves you time, reduces decision fatigue, and keeps your campus day flowing smoothly.</p>
+        <div class="info-callout center-callout">
+            <span class="callout-icon"><i class="fas fa-info-circle"></i></span>
+            <span>Every recommendation is backed by real-time data from 3 sources — delivering 94% decision accuracy.</span>
+        </div>
+        <div class="stats-row">
+            <div class="stat-item" data-aos>
+                <span class="stat-number" data-count="8">0</span><span class="stat-suffix">min</span>
+                <p>Average time saved daily</p>
+            </div>
+            <div class="stat-item" data-aos>
+                <span class="stat-number" data-count="94">0</span><span class="stat-suffix">%</span>
+                <p>Decision accuracy</p>
+            </div>
+            <div class="stat-item" data-aos>
+                <span class="stat-number" data-count="2.4">0</span><span class="stat-suffix">k</span>
+                <p>Campus decisions made</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== FEATURES SECTION ========== -->
+    <section class="section features-section" id="features">
+        <div class="features-grid">
+            <div class="feature-card" data-aos>
+                <div class="feature-icon red-bg"><i class="fas fa-bolt"></i></div>
+                <h3>Smart Decisions</h3>
+                <p>Data-driven routing based on your timetable, room data, and live campus flow.</p>
+            </div>
+            <div class="feature-card" data-aos>
+                <div class="feature-icon orange-bg"><i class="fas fa-clock"></i></div>
+                <h3>Real-Time Context</h3>
+                <p>Live parking, classroom, and crowd data updated every 60 seconds.</p>
+            </div>
+            <div class="feature-card" data-aos>
+                <div class="feature-icon green-bg"><i class="fas fa-hand-pointer"></i></div>
+                <h3>One-Tap Actions</h3>
+                <p>Start your plan instantly. No searching, no guessing, no wasted time.</p>
+            </div>
+        </div>
+        <div class="cta-block">
+            <button class="btn btn-primary btn-large" id="getStartedBtn">
+                <i class="fas fa-paper-plane"></i> Get Started with CampusFlow <i class="fas fa-arrow-right"></i>
+            </button>
+            <p class="cta-note">Free for all enrolled students. No setup required.</p>
+        </div>
+    </section>
+
+    <!-- ========== FOOTER ========== -->
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-left">
+                <div class="logo-icon small">C</div>
+                <span class="logo-text">CAMPUSFLOW</span>
+                <a href="#">About</a>
+                <a href="#">Privacy</a>
+                <a href="#">Feedback</a>
+            </div>
+            <div class="footer-right">
+                <span>Made for students, by students. © 2026 CampusFlow</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ========== FLOATING CHAT BAR ========== -->
+    <div class="floating-chat" id="floatingChat">
+        <input type="text" placeholder="Ask anything about your next class, parking, or study spot..." id="chatInput">
+        <button class="chat-send" id="chatSend">
+            <i class="fas fa-paper-plane"></i>
+        </button>
+    </div>
+
+    <!-- ========== NOTIFICATION PANEL ========== -->
+    <div class="notif-panel" id="notifPanel">
+        <div class="notif-header">
+            <h4>Notifications</h4>
+            <button class="notif-close" id="notifClose"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="notif-list">
+            <div class="notif-item urgent">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div>
+                    <strong>Parking Alert</strong>
+                    <p>Gate 1 is 90% full. Switch to Gate 3.</p>
+                    <small>2 min ago</small>
+                </div>
+            </div>
+            <div class="notif-item info">
+                <i class="fas fa-clock"></i>
+                <div>
+                    <strong>Class Reminder</strong>
+                    <p>Data Structures Lab starts in 18 min</p>
+                    <small>5 min ago</small>
+                </div>
+            </div>
+            <div class="notif-item success">
+                <i class="fas fa-check-circle"></i>
+                <div>
+                    <strong>Timetable Synced</strong>
+                    <p>Your Friday schedule is up to date</p>
+                    <small>10 min ago</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== CHAT RESPONSE PANEL ========== -->
+    <div class="chat-response-panel" id="chatResponsePanel">
+        <div class="chat-response-header">
+            <span>CampusFlow Assistant</span>
+            <button class="chat-response-close" id="chatResponseClose"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
