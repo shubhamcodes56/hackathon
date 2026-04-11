@@ -1,30 +1,28 @@
-const fs = require('fs');
-const path = require('path');
+const { readKey, saveKey, clearKey, normalizeKey } = require('../utils/keyStore');
 
-const keysPath = path.join(__dirname, '../../secure_keys.json');
-
-function readKey() {
-  try {
-    if (!fs.existsSync(keysPath)) return null;
-    const raw = fs.readFileSync(keysPath, 'utf8');
-    const obj = JSON.parse(raw || '{}');
-    return obj.apiKey || null;
-  } catch (err) {
-    return null;
-  }
-}
-
-function saveKeyToFile(key) {
-  const payload = { apiKey: key };
-  fs.writeFileSync(keysPath, JSON.stringify(payload, null, 2), { mode: 0o600 });
+function detectProvider(key) {
+  if (!key || typeof key !== 'string') return null;
+  if (key.startsWith('sk-') || key.startsWith('sk-proj-')) return 'openai';
+  // Assume everything else is Gemini to prevent blocking valid keys from other origins
+  return 'google';
 }
 
 exports.saveKey = (req, res) => {
   const { key } = req.body;
   if (!key) return res.status(400).json({ error: 'Missing key' });
+
+  // Remove whitespace and leading/trailing quotes that may have been accidentally copied
+  const trimmed = normalizeKey(key);
+  const provider = detectProvider(trimmed);
+  if (!provider) {
+    return res.status(400).json({
+      error: 'Invalid key format. Use OpenAI key starting with sk- (or sk-proj-) or Gemini key starting with AIza.'
+    });
+  }
+
   try {
-    saveKeyToFile(key);
-    return res.json({ ok: true });
+    saveKey(trimmed);
+    return res.json({ ok: true, provider });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to save key' });
   }
@@ -32,7 +30,7 @@ exports.saveKey = (req, res) => {
 
 exports.clearKey = (req, res) => {
   try {
-    if (fs.existsSync(keysPath)) fs.unlinkSync(keysPath);
+    clearKey();
     return res.json({ ok: true });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to clear key' });
@@ -45,14 +43,24 @@ exports.getModels = async (req, res) => {
   if (!key) return res.status(403).json({ error: 'No API key saved' });
 
   try {
+    const provider = detectProvider(key);
+    if (!provider) {
+      return res.status(400).json({
+        error: 'Saved key format is invalid. Please clear key and save a valid OpenAI (sk-) or Gemini (AIza) key.'
+      });
+    }
+
     // ── Gemini Key (AIza...) ──
-    if (key.startsWith('AIza')) {
+    if (provider === 'google') {
       const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${key}`;
       const resp = await fetch(url);
       const json = await resp.json();
 
       if (!resp.ok) {
-        return res.status(resp.status).json({ error: json.error?.message || 'Gemini API error' });
+        return res.status(resp.status).json({
+          error: json.error?.message || 'Gemini API error',
+          code: json.error?.status || 'gemini_error'
+        });
       }
 
       // Filter to generative (chat-capable) models only & sort nicely
@@ -78,7 +86,15 @@ exports.getModels = async (req, res) => {
 
     if (!resp.ok) {
       const txt = await resp.text();
-      return res.status(resp.status).json({ error: txt });
+      try {
+        const parsed = JSON.parse(txt);
+        return res.status(resp.status).json({
+          error: parsed.error?.message || 'OpenAI API error',
+          code: parsed.error?.code || 'openai_error'
+        });
+      } catch (_err) {
+        return res.status(resp.status).json({ error: txt || 'OpenAI API error', code: 'openai_error' });
+      }
     }
 
     const json = await resp.json();
@@ -97,6 +113,10 @@ exports.getModels = async (req, res) => {
 
 exports.hasKey = (req, res) => {
   const key = readKey();
-  const provider = key ? (key.startsWith('AIza') ? 'google' : 'openai') : null;
-  return res.json({ hasKey: !!key, provider });
+  const provider = detectProvider(key);
+  // Backward compatibility: treat legacy invalid saved values as "no usable key".
+  if (!provider) {
+    return res.json({ hasKey: false, provider: null, invalidSavedKey: !!key });
+  }
+  return res.json({ hasKey: true, provider });
 };

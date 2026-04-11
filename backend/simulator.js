@@ -31,30 +31,69 @@ function randomInt(min, max) {
 async function simulatorFn() {
   console.log(`${ts()} 🔄 LIVE IITB SIMULATOR...`);
 
-  // 1) Update classrooms occupancy randomly
   try {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const now = new Date();
+    const opts = { timeZone: 'Asia/Kolkata', hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' };
+    const istTimeStr = new Intl.DateTimeFormat('en-US', opts).format(now);
+    const day = days[now.getDay()];
+
+    const timetableQuery = `
+      SELECT room_name, capacity, enrolled 
+      FROM timetable 
+      WHERE day_of_week = $1 AND start_time <= $2 AND end_time >= $2
+    `;
+    const activeClassesRes = await safeQuery(timetableQuery, [day, istTimeStr]);
+    const activeClasses = activeClassesRes.rows;
+    // Build a map of active rooms
+    const activeRoomMap = {};
+    for (const c of activeClasses) activeRoomMap[c.room_name] = c;
+
+    // 1) Update classrooms occupancy
     const roomsRes = await safeQuery("SELECT id, room_number, capacity, current_occupancy FROM rooms");
     for (const r of roomsRes.rows) {
       if (!r.capacity) continue;
       
       const { id, room_number, capacity, current_occupancy } = r;
+      // Active class map usually matches room_name against room_number, let's treat them as equivalent
+      const room_name = room_number;
 
-      // 40% chance the room's occupancy changes slightly
-      if (Math.random() < 0.40) {
-        // Change between -5 and +5 students
-        const delta = Math.floor(Math.random() * 11) - 5;
-        let newOcc = current_occupancy + delta;
+      if (activeRoomMap[room_name]) { // It's class time!
+        const classData = activeRoomMap[room_name];
+        // Enforce high occupancy (80-95% of enrolled)
+        const targetOcc = Math.min(capacity, Math.floor(classData.enrolled * (0.8 + Math.random() * 0.15)));
         
-        // Clamp between 0 and capacity
-        newOcc = Math.max(0, Math.min(newOcc, capacity));
-        
+        // Slightly random fluctuation if already close to target
+        let newOcc = targetOcc;
+        if (current_occupancy > 0) {
+            const delta = Math.floor(Math.random() * 5) - 2;
+            newOcc = Math.max(Math.floor(capacity * 0.5), Math.min(targetOcc + delta, capacity));
+        }
+
         if (newOcc !== current_occupancy) {
-          // Update the occupancy, and calculate if it's "available" (let's say it's unavailable if >90% full)
           const isAvail = newOcc < (capacity * 0.9);
-          
           await safeQuery('UPDATE rooms SET current_occupancy = $1, is_available = $2 WHERE id = $3', [newOcc, isAvail, id]);
-          const percent = Math.round((newOcc / capacity) * 100);
-          console.log(`${ts()} 🏫 Room ${room_number}: ${newOcc}/${capacity} (${percent}% full)`);
+          console.log(`${ts()} 📚 Class active in ${room_name}: ${newOcc}/${capacity} filled`);
+        }
+      } else {
+        // Normal random idle fluctuation
+        if (Math.random() < 0.40) {
+          const delta = Math.floor(Math.random() * 11) - 5;
+          let newOcc = current_occupancy + delta;
+          
+          // Without class, room should gradually empty out to ~10%
+          if (newOcc > capacity * 0.2) {
+              newOcc -= Math.floor(Math.random() * 10) + 5; // empty faster
+          }
+
+          newOcc = Math.max(0, Math.min(newOcc, capacity));
+          
+          if (newOcc !== current_occupancy) {
+            const isAvail = newOcc < (capacity * 0.9);
+            await safeQuery('UPDATE rooms SET current_occupancy = $1, is_available = $2 WHERE id = $3', [newOcc, isAvail, id]);
+            // const percent = Math.round((newOcc / capacity) * 100);
+            // console.log(`${ts()} 🏫 Room ${room_name || room_number}: ${newOcc}/${capacity} (${percent}% full)`);
+          }
         }
       }
     }

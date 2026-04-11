@@ -29,3 +29,19 @@ exports.loginSchema = z.object({
     password: z.string({ required_error: 'Password is required' })
         .min(1, 'Password is required')
 }).strict();
+
+// Schema for passwordless Google/Apple-style sign-in
+exports.socialAuthSchema = z.object({
+    email: z.string({ required_error: 'Email is required' })
+        .email('Invalid email address format')
+        .toLowerCase()
+        .trim(),
+
+    full_name: z.string().trim().max(50, 'Name cannot exceed 50 characters').optional(),
+
+    provider: z.enum(['google', 'apple']).default('google')
+}).strict();
+
+exports.googleAccessSchema = z.object({
+    access_token: z.string({ required_error: 'Google access token is required' }).min(10)
+}).strict();

@@ -15,7 +15,15 @@
     <nav class="navbar" id="navbar">
         <div class="nav-left">
             <div class="logo-icon">C</div>
-            <span class="logo-text">CAMPUSFLOW</span>
+            <a href="/dashboard" class="logo-text">CAMPUSFLOW</a>
+            <div class="quick-nav">
+                <a href="/dashboard#signals">Signals</a>
+                <a href="/dashboard#alerts">Alerts</a>
+                <a href="/dashboard#density">Density</a>
+                <a href="#spaces">Spaces</a>
+                <a href="#" id="navChatBtn">Chat</a>
+                <a href="timetable.html">Timetable</a>
+            </div>
         </div>
         <div class="nav-right">
             <div class="live-badge">
@@ -128,10 +136,10 @@
     <section class="section signals-section" id="signals">
         <div class="section-center">
             <h2 class="section-heading-center">Three signals.<br><span class="text-red">One smart decision.</span></h2>
-            <p class="section-sub-center">CampusFlow combines your timetable, real-time room data, and parking availability to create one clear recommendation — so you never have to guess.</p>
+            <p class="section-sub-center" id="signalsSectionSub">CampusFlow combines your timetable, real-time room data, and parking availability to create one clear recommendation — so you never have to guess.</p>
             <div class="info-callout center-callout">
                 <span class="callout-icon"><i class="fas fa-info-circle"></i></span>
-                <span>We take 3 live inputs — your schedule, room data, and parking — and merge them into one optimized action.</span>
+                <span id="signalsCalloutText">We take 3 live inputs — your schedule, room data, and parking — and merge them into one optimized action.</span>
             </div>
         </div>
         <div class="signal-cards">
@@ -194,14 +202,38 @@
                     <span class="label-text">SMART ALERTS</span>
                 </div>
                 <h2 class="section-heading">Stay ahead of<br><span class="text-red">campus chaos.</span></h2>
-                <p class="section-sub">CampusFlow detects congestion, scheduling clashes, and parking rushes before they affect you.</p>
+                <p class="section-sub" id="alertsSectionSub">CampusFlow detects congestion, scheduling clashes, and parking rushes before they affect you.</p>
                 <div class="info-callout">
                     <span class="callout-icon"><i class="fas fa-info-circle"></i></span>
-                    <span>Our alert system detects crowd buildup before it happens — so you can plan smarter.</span>
+                    <span id="alertsCallout">Our alert system detects crowd buildup before it happens — so you can plan smarter.</span>
                 </div>
                 <!-- Timeline -->
                 <div class="timeline" id="timeline">
                     <!-- populated by JS -->
+                    <div class="timeline-item">
+                        <div class="timeline-marker class"><i class="fas fa-book"></i></div>
+                        <div class="timeline-card active">
+                            <div class="timeline-time">10:30 AM — 11:30 AM</div>
+                            <div class="timeline-title">Calculus & Linear Algebra</div>
+                            <div class="timeline-loc"><i class="fas fa-map-marker-alt"></i> LT-1 (Lecture Hall Complex)</div>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-marker free"><i class="fas fa-mug-hot"></i></div>
+                        <div class="timeline-card">
+                            <div class="timeline-time">11:30 AM — 1:00 PM</div>
+                            <div class="timeline-title">Free Period — Lunch Commute</div>
+                            <div class="timeline-loc"><i class="fas fa-map-marker-alt"></i> Canteen Block (Expect rush by 12:30)</div>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-marker lab"><i class="fas fa-microscope"></i></div>
+                        <div class="timeline-card">
+                            <div class="timeline-time">1:00 PM — 3:00 PM</div>
+                            <div class="timeline-title">Physics Lab</div>
+                            <div class="timeline-loc"><i class="fas fa-map-marker-alt"></i> Main Building (Ground Floor)</div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="alerts-right">
@@ -248,13 +280,61 @@
             <span class="label-text">CAMPUS DENSITY</span>
         </div>
         <h2 class="section-heading">Know when it's<br><span class="text-red">too crowded.</span></h2>
-        <p class="section-sub">Real-time crowd tracking across campus zones. We predict when areas will get busy so you can plan ahead.</p>
+        <p class="section-sub" id="densitySectionSub">Real-time crowd tracking across campus zones. We predict when areas will get busy so you can plan ahead.</p>
         <div class="info-callout wide-callout">
             <span class="callout-icon"><i class="fas fa-info-circle"></i></span>
-            <span>We track foot traffic and predict crowd surges — helping you avoid rush at canteen, parking, or library.</span>
+            <span id="densityCallout">We track foot traffic and predict crowd surges — helping you avoid rush at canteen, parking, or library.</span>
         </div>
         <div class="density-grid" id="densityGrid">
             <!-- populated by JS -->
+            <div class="density-card">
+                <div class="density-card-header">
+                    <div class="density-card-left">
+                        <div class="density-icon red-bg"><i class="fas fa-utensils"></i></div>
+                        <h3>Canteen Block</h3>
+                    </div>
+                    <div class="density-pct text-red">88%</div>
+                </div>
+                <div class="density-peak">Peak expected in 15 mins</div>
+                <div class="density-bar"><div class="density-bar-fill" style="width: 88%; background: var(--red);"></div></div>
+                <div class="density-tip"><i class="fas fa-arrow-up"></i> <span>Crowd increasing rapidly</span></div>
+            </div>
+            <div class="density-card">
+                <div class="density-card-header">
+                    <div class="density-card-left">
+                        <div class="density-icon orange-bg"><i class="fas fa-book-reader"></i></div>
+                        <h3>Central Library</h3>
+                    </div>
+                    <div class="density-pct" style="color: var(--orange);">65%</div>
+                </div>
+                <div class="density-peak">Steady throughout the day</div>
+                <div class="density-bar"><div class="density-bar-fill" style="width: 65%; background: var(--orange);"></div></div>
+                <div class="density-tip" style="color: var(--orange);"><i class="fas fa-minus"></i> <span style="color: inherit;">Moderate foot traffic</span></div>
+            </div>
+            <div class="density-card">
+                <div class="density-card-header">
+                    <div class="density-card-left">
+                        <div class="density-icon green-bg"><i class="fas fa-tree"></i></div>
+                        <h3>Main Lawns</h3>
+                    </div>
+                    <div class="density-pct" style="color: var(--green);">20%</div>
+                </div>
+                <div class="density-peak">Always free</div>
+                <div class="density-bar"><div class="density-bar-fill" style="width: 20%; background: var(--green);"></div></div>
+                <div class="density-tip" style="color: var(--green);"><i class="fas fa-arrow-down"></i> <span style="color: inherit;">Very quiet right now</span></div>
+            </div>
+            <div class="density-card">
+                <div class="density-card-header">
+                    <div class="density-card-left">
+                        <div class="density-icon red-bg"><i class="fas fa-parking"></i></div>
+                        <h3>Gate 1 Parking</h3>
+                    </div>
+                    <div class="density-pct text-red">95%</div>
+                </div>
+                <div class="density-peak">Full until 2PM</div>
+                <div class="density-bar"><div class="density-bar-fill" style="width: 95%; background: var(--red);"></div></div>
+                <div class="density-tip"><i class="fas fa-exclamation-circle text-red"></i> <span style="color: var(--text-secondary);">Divert to Gate 3</span></div>
+            </div>
         </div>
     </section>
 
@@ -268,10 +348,10 @@
                     <span class="label-text">QUIET SPACES</span>
                 </div>
                 <h2 class="section-heading">Find your<br><span class="text-red">calm corner.</span></h2>
-                <p class="section-sub">Discover available study spots, quiet zones, and open areas across campus — updated in real time.</p>
+                <p class="section-sub" id="spacesSectionSub">Discover available study spots, quiet zones, and open areas across campus — updated in real time.</p>
                 <div class="info-callout">
                     <span class="callout-icon"><i class="fas fa-info-circle"></i></span>
-                    <span>We identify quieter study zones in real-time — so you always find a seat when you need one.</span>
+                    <span id="spacesCallout">We identify quieter study zones in real-time — so you always find a seat when you need one.</span>
                 </div>
             </div>
             <div class="spaces-header-right">
@@ -285,6 +365,71 @@
         </div>
         <div class="spaces-grid" id="spacesGrid">
             <!-- populated by JS -->
+            <div class="space-card">
+                <div class="space-card-gradient sky">
+                    <div class="space-available-badge"><i class="fas fa-chair"></i> 12 Seats</div>
+                    <div class="space-type-icon"><i class="fas fa-book-open"></i></div>
+                </div>
+                <div class="space-card-body">
+                    <h3>Library Reading Room 2</h3>
+                    <div class="space-meta">
+                        <span><i class="fas fa-walking"></i> 4 min</span>
+                        <span><i class="fas fa-wifi"></i> Strong</span>
+                    </div>
+                    <div class="noise-indicator">
+                        <span>Noise: Low</span>
+                        <div class="noise-bars">
+                            <div class="noise-bar active low"></div>
+                            <div class="noise-bar"></div>
+                            <div class="noise-bar"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-card">
+                <div class="space-card-gradient mint">
+                    <div class="space-available-badge"><i class="fas fa-chair"></i> 45 Seats</div>
+                    <div class="space-type-icon"><i class="fas fa-tree"></i></div>
+                </div>
+                <div class="space-card-body">
+                    <h3>CS Dept Courtyard</h3>
+                    <div class="space-meta">
+                        <span><i class="fas fa-walking"></i> 2 min</span>
+                        <span><i class="fas fa-plug"></i> Outlets</span>
+                    </div>
+                    <div class="noise-indicator">
+                        <span>Noise: Med</span>
+                        <div class="noise-bars">
+                            <div class="noise-bar active mid"></div>
+                            <div class="noise-bar active mid"></div>
+                            <div class="noise-bar"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-card">
+                <div class="space-card-gradient peach">
+                    <div class="space-available-badge" style="color: var(--red);"><i class="fas fa-chair"></i> 5 Seats</div>
+                    <div class="space-type-icon"><i class="fas fa-coffee"></i></div>
+                </div>
+                <div class="space-card-body">
+                    <h3>Student Lounge</h3>
+                    <div class="space-meta">
+                        <span><i class="fas fa-walking"></i> 7 min</span>
+                        <span><i class="fas fa-volume-up"></i> Cafe</span>
+                    </div>
+                    <div class="noise-indicator">
+                        <span>Noise: High</span>
+                        <div class="noise-bars">
+                            <div class="noise-bar active high"></div>
+                            <div class="noise-bar active high"></div>
+                            <div class="noise-bar active high"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="explore-map-btn">
             <i class="fas fa-map"></i>
@@ -308,15 +453,15 @@
         </div>
         <div class="stats-row">
             <div class="stat-item" data-aos>
-                <span class="stat-number" data-count="8">0</span><span class="stat-suffix">min</span>
+                <span class="stat-number" id="avgTimeStat" data-count="8">0</span><span class="stat-suffix">min</span>
                 <p>Average time saved daily</p>
             </div>
             <div class="stat-item" data-aos>
-                <span class="stat-number" data-count="94">0</span><span class="stat-suffix">%</span>
+                <span class="stat-number" id="accuracyStat" data-count="94">0</span><span class="stat-suffix">%</span>
                 <p>Decision accuracy</p>
             </div>
             <div class="stat-item" data-aos>
-                <span class="stat-number" data-count="2.4">0</span><span class="stat-suffix">k</span>
+                <span class="stat-number" id="decisionsStat" data-count="2.4">0</span><span class="stat-suffix">k</span>
                 <p>Campus decisions made</p>
             </div>
         </div>
@@ -407,15 +552,50 @@
         </div>
     </div>
 
-    <!-- ========== CHAT RESPONSE PANEL ========== -->
-    <div class="chat-response-panel" id="chatResponsePanel">
-        <div class="chat-response-header">
-            <span>CampusFlow Assistant</span>
-            <button class="chat-response-close" id="chatResponseClose"><i class="fas fa-times"></i></button>
+    <!-- ========== FULL SCREEN CHAT MODAL OVERLAY ========== -->
+    <div class="chat-modal-overlay" id="chatModalOverlay">
+        <div class="chat-modal-body">
+            <button class="chat-modal-close" id="chatModalClose"><i class="fas fa-times"></i></button>
+            <main class="chat-modal-layout">
+                <aside class="chat-modal-settings">
+                    <h2><i class="fas fa-key"></i> LLM Setup</h2>
+                    <p class="hint">Save your API key once. Models load from your provider automatically.</p>
+              
+                    <label for="apiKey">API Key</label>
+                    <input id="apiKey" type="password" placeholder="Paste OpenAI or Gemini key">
+              
+                    <div class="row">
+                      <button id="saveKeyBtn" class="btn primary">Save Key</button>
+                      <button id="clearKeyBtn" class="btn warn">Clear</button>
+                    </div>
+              
+                    <label for="modelSelect">Model</label>
+                    <select id="modelSelect" disabled>
+                      <option>Save key first</option>
+                    </select>
+              
+                    <p id="keyStatus" class="status">No API key saved.</p>
+                </aside>
+          
+                <section class="chat-modal-chatbox">
+                    <header class="chat-head">
+                        <h1>Campus Assistant</h1>
+                        <p>Ask about classrooms, parking, routes, and real-time campus context.</p>
+                    </header>
+              
+                    <div id="chatMessages" class="messages chat-messages"></div>
+              
+                    <form id="chatForm" class="composer">
+                        <!-- Removed input here since we use the floating one, but we may want a secondary input here -->
+                        <input id="modalChatInput" type="text" placeholder="Ask your campus question..." autocomplete="off">
+                        <button type="submit" id="modalSendBtn" class="btn primary"><i class="fas fa-paper-plane"></i> Send</button>
+                    </form>
+                </section>
+            </main>
         </div>
-        <div class="chat-messages" id="chatMessages"></div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

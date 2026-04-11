@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CampusFlow Sign In</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/auth.css">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body class="auth-body">
+  <div class="auth-bg"></div>
+  <div class="auth-noise"></div>
+
+  <main class="auth-shell">
+    <section class="auth-brand">
+      <a href="/auth.html" class="auth-logo">
+        <span class="logo-icon">C</span>
+        <span class="logo-text">CAMPUSFLOW</span>
+      </a>
+      <div class="auth-kicker">Smart campus decisions with one clean sign-in.</div>
+      <h1>Enter your campus dashboard with Google or Apple.</h1>
+      <p>
+        Save your account once, keep it signed in, and land directly on the main website with your username shown as the part before <span>@gmail.com</span>.
+      </p>
+      <div class="auth-points">
+        <div><i class="fas fa-bolt"></i> One-click Google or Apple style entry</div>
+        <div><i class="fas fa-user-shield"></i> Session saved for future visits</div>
+        <div><i class="fas fa-id-badge"></i> Username shown from your email local-part</div>
+      </div>
+    </section>
+
+    <section class="auth-card panel">
+      <div class="auth-tabs" role="tablist" aria-label="Authentication mode">
+        <button class="auth-tab active" id="signinTab" type="button" data-mode="signin">Sign In</button>
+        <button class="auth-tab" id="signupTab" type="button" data-mode="signup">Sign Up</button>
+      </div>
+
+      <div class="provider-row">
+        <button type="button" class="provider-btn google" id="googleBtn">
+          <span class="provider-icon"><i class="fab fa-google"></i></span>
+          <span>Continue with Google</span>
+        </button>
+        <button type="button" class="provider-btn apple" id="appleBtn">
+          <span class="provider-icon"><i class="fab fa-apple"></i></span>
+          <span>Continue with Apple</span>
+        </button>
+      </div>
+
+      <div class="auth-divider"><span>or use email/password</span></div>
+
+      <form id="authForm" class="auth-form">
+        <div class="field field-full" id="nameField">
+          <label for="fullName">Full name</label>
+          <input id="fullName" type="text" placeholder="Your name" autocomplete="name">
+        </div>
+
+        <div class="field field-full">
+          <label for="email">Email</label>
+          <input id="email" type="email" placeholder="name@gmail.com" autocomplete="email">
+          <p class="field-hint" id="usernameHint">Your dashboard username will appear here.</p>
+        </div>
+
+        <div class="field field-full">
+          <label for="password">Password</label>
+          <input id="password" type="password" placeholder="Enter password" autocomplete="current-password">
+        </div>
+
+        <div class="form-actions">
+          <button id="submitBtn" class="btn primary auth-submit" type="submit">Sign In</button>
+        </div>
+      </form>
+
+      <p class="auth-status" id="authStatus">Use Google or Apple for the fastest login flow.</p>
+    </section>
+  </main>
+
+  <script src="js/auth.js"></script>
+</body>
+</html>

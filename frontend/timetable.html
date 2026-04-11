@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusFlow — Your Live Timetable</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .timetable-section {
+            padding-top: 120px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+        .tt-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            width: 100%;
+        }
+        .tt-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        /* Premium Cream Theme Cards */
+        .tt-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+        .tt-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            background: var(--bg-card-hover);
+        }
+        .tt-card.active {
+            border-color: rgba(232, 18, 10, 0.4);
+            background: #FFFFFF;
+            box-shadow: var(--shadow-glow);
+        }
+        .tt-card.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--red);
+        }
+        
+        .tt-time {
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        .tt-card.active .tt-time {
+            color: var(--red);
+            font-weight: 600;
+        }
+        .tt-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .tt-room {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+        .tt-prof {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 12px;
+            display: inline-block;
+            background: rgba(0,0,0,0.04);
+            padding: 4px 10px;
+            border-radius: var(--radius-sm);
+            font-weight: 500;
+        }
+        
+        .hero-left { max-width: 600px; }
+
+        .tt-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 14px 0 12px;
+        }
+        .tt-chip {
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            border-radius: var(--radius-pill);
+            padding: 7px 14px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .tt-chip:hover {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+        }
+        .tt-chip.active {
+            border-color: rgba(232, 18, 10, 0.35);
+            color: var(--red-dark);
+            background: var(--red-light);
+        }
+
+        .tt-filters {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+        .tt-input,
+        .tt-select {
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border-radius: var(--radius-sm);
+            padding: 9px 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            min-width: 170px;
+        }
+        .tt-apply {
+            border: none;
+            border-radius: var(--radius-sm);
+            background: var(--red);
+            color: #fff;
+            font-size: 0.85rem;
+            font-weight: 700;
+            padding: 9px 14px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .tt-apply:hover {
+            background: var(--red-dark);
+        }
+
+        .tt-week-group {
+            border: 1px dashed var(--border);
+            background: rgba(255, 255, 255, 0.55);
+            border-radius: var(--radius-md);
+            padding: 14px;
+        }
+        .tt-week-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .tt-week-head h4 {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+        .tt-week-date {
+            font-size: 0.78rem;
+            font-family: var(--mono);
+            color: var(--text-muted);
+        }
+        .tt-mini-item {
+            margin-top: 8px;
+            padding: 8px 10px;
+            border-radius: var(--radius-sm);
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            font-size: 0.83rem;
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 900px) {
+            .tt-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Subtle skeleton loader */
+        .skeleton {
+            background: linear-gradient(90deg, var(--bg-card) 25%, var(--border-light) 50%, var(--bg-card) 75%);
+            background-size: 400% 100%;
+            animation: skeleton-loading 1.5s infinite;
+            border-radius: 4px;
+        }
+        @keyframes skeleton-loading {
+            0% { background-position: 100% 50%; }
+            100% { background-position: 0 50%; }
+        }
+        .skel-text { height: 20px; width: 70%; margin-bottom: 10px; }
+        .skel-title { height: 32px; width: 50%; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <!-- Fixed Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-left">
+            <div class="logo-icon">C</div>
+            <a href="index.html" class="logo-text" style="text-decoration:none; color:inherit;">CAMPUSFLOW</a>
+            <div class="nav-links" style="margin-left:30px; display:flex; gap:20px;">
+                <a href="index.html" style="color:var(--text-muted); text-decoration:none; font-size:0.9rem; font-weight:500;">DASHBOARD</a>
+                <a href="timetable.html" style="color:var(--text-primary); text-decoration:none; font-size:0.9rem; font-weight:600; border-bottom:2px solid var(--red); padding-bottom:5px;">TIMETABLE</a>
+            </div>
+        </div>
+        <div class="nav-right">
+            <div class="live-badge">
+                <span class="live-dot"></span>
+                LIVE
+            </div>
+            <div class="avatar">A</div>
+        </div>
+    </nav>
+
+    <section class="section timetable-section">
+        <div class="container tt-grid">
+            <div class="hero-left">
+                <div class="system-status" style="margin-bottom: 20px;">
+                    <span class="status-dot red"></span>
+                    <span class="status-text" id="tt-day">UPDATING...</span>
+                </div>
+                <h1 class="hero-heading" style="font-size: 3.5rem;">
+                    Your Schedule,<br>
+                    <span class="text-red">Uncomplicated.</span>
+                </h1>
+                <p class="hero-sub" id="tt-message" style="margin-top: 20px; font-size: 1.1rem; color: var(--text-secondary);">Syncing your live IITB classes...</p>
+                
+                <div class="info-callout" style="margin-top: 40px; display: none;" id="active-class-callout">
+                    <span class="callout-icon"><i class="fas fa-location-arrow"></i></span>
+                    <span id="tt-action" style="color: var(--text-primary); font-weight: 500;">Head to LC101 via Main Walkway.</span>
+                </div>
+            </div>
+            
+            <div class="hero-right">
+                <h3 id="tt-view-title" style="font-size: 1rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; font-weight: 700; margin-bottom: 10px;">Today's Classes</h3>
+                <div class="tt-controls" id="tt-controls">
+                    <button class="tt-chip active" data-mode="today">Live Today</button>
+                    <button class="tt-chip" data-mode="day">Day</button>
+                    <button class="tt-chip" data-mode="date">Date</button>
+                    <button class="tt-chip" data-mode="week">Week</button>
+                </div>
+                <div class="tt-filters">
+                    <select class="tt-select" id="tt-day-select" style="display:none;">
+                        <option value="Monday">Monday</option>
+                        <option value="Tuesday">Tuesday</option>
+                        <option value="Wednesday">Wednesday</option>
+                        <option value="Thursday">Thursday</option>
+                        <option value="Friday">Friday</option>
+                        <option value="Saturday">Saturday</option>
+                        <option value="Sunday">Sunday</option>
+                    </select>
+                    <input class="tt-input" id="tt-date-input" type="date" style="display:none;" />
+                    <input class="tt-input" id="tt-week-start" type="date" style="display:none;" />
+                    <button class="tt-apply" id="tt-apply-btn" style="display:none;">Apply</button>
+                </div>
+                <div class="tt-list" id="tt-list">
+                    <div class="tt-card">
+                        <div class="skeleton skel-text" style="width: 30%;"></div>
+                        <div class="skeleton skel-title"></div>
+                        <div class="skeleton skel-text" style="width: 40%;"></div>
+                    </div>
+                    <div class="tt-card">
+                        <div class="skeleton skel-text" style="width: 30%;"></div>
+                        <div class="skeleton skel-title"></div>
+                        <div class="skeleton skel-text" style="width: 40%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Chat Widget Integration -->
+    <!-- ========== FLOATING CHAT BAR ========== -->
+    <div class="floating-chat" id="floatingChat">
+        <input type="text" placeholder="Ask about room locations, study spots, or navigation..." id="chatInput">
+        <button class="chat-send" id="chatSend">
+            <i class="fas fa-paper-plane"></i>
+        </button>
+    </div>
+
+    <!-- ========== CHAT RESPONSE PANEL ========== -->
+    <div class="chat-response-panel" id="chatResponsePanel">
+        <div class="chat-response-header">
+            <span>CampusFlow Assistant</span>
+            <button class="chat-response-close" id="chatResponseClose"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    
+    <script>
+        function apiBases() {
+            const bases = [];
+            if (window.location.port === '5000') bases.push('');
+            bases.push('http://127.0.0.1:5000');
+            bases.push('http://localhost:5000');
+            if (window.location.hostname && window.location.hostname !== 'localhost') {
+                bases.push(`http://${window.location.hostname}:5000`);
+            }
+            return [...new Set(bases)];
+        }
+
+        async function fetchWithFallback(path, options) {
+            let lastErr = null;
+            for (const base of apiBases()) {
+                try {
+                    const res = await fetch(base + path, options);
+                    return res; // Return regardless of status
+                } catch (err) {
+                    lastErr = err;
+                }
+            }
+            throw lastErr || new Error('Backend unreachable');
+        }
+
+        function format12(timeStr) {
+            if (!timeStr) return '';
+            const [h, m] = String(timeStr).split(':');
+            let hour = Number.parseInt(h, 10);
+            if (!Number.isFinite(hour)) return String(timeStr);
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            hour = hour % 12 || 12;
+            return `${hour}:${m} ${ampm}`;
+        }
+
+        function escapeHtml(text) {
+            return String(text || '').replace(/[&<>"']/g, (m) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[m]));
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const dayBadge = document.getElementById('tt-day');
+            const msgEl = document.getElementById('tt-message');
+            const listContainer = document.getElementById('tt-list');
+            const callout = document.getElementById('active-class-callout');
+            const actionEl = document.getElementById('tt-action');
+            const titleEl = document.getElementById('tt-view-title');
+
+            const controls = Array.from(document.querySelectorAll('.tt-chip'));
+            const daySelect = document.getElementById('tt-day-select');
+            const dateInput = document.getElementById('tt-date-input');
+            const weekStartInput = document.getElementById('tt-week-start');
+            const applyBtn = document.getElementById('tt-apply-btn');
+
+            let currentMode = 'today';
+            let timer = null;
+
+            const setFilterVisibility = () => {
+                daySelect.style.display = currentMode === 'day' ? 'inline-flex' : 'none';
+                dateInput.style.display = currentMode === 'date' ? 'inline-flex' : 'none';
+                weekStartInput.style.display = currentMode === 'week' ? 'inline-flex' : 'none';
+                applyBtn.style.display = currentMode === 'today' ? 'none' : 'inline-flex';
+
+                if (currentMode === 'today') {
+                    titleEl.textContent = "Today's Classes";
+                } else if (currentMode === 'day') {
+                    titleEl.textContent = 'Selected Day Schedule';
+                } else if (currentMode === 'date') {
+                    titleEl.textContent = 'Selected Date Schedule';
+                } else {
+                    titleEl.textContent = 'Weekly Schedule';
+                }
+            };
+
+            const classCardHtml = (c, active = false, badge = '') => `
+                <div class="tt-card ${active ? 'active' : ''}">
+                    <div class="tt-time"><i class="far fa-clock"></i> ${format12(c.start_time)} - ${format12(c.end_time)}</div>
+                    <div class="tt-title">
+                        ${escapeHtml(c.course_code)}: ${escapeHtml(c.course_name)}
+                        ${badge}
+                    </div>
+                    <div class="tt-room"><i class="fas fa-map-marker-alt" style="color:var(--red);"></i> ${escapeHtml(c.room_name || 'Room TBA')}</div>
+                    <div class="tt-prof"><i class="fas fa-user-tie"></i> ${escapeHtml(c.instructor || 'Faculty')}</div>
+                </div>
+            `;
+
+            const renderDayLike = (data, mode) => {
+                dayBadge.textContent = mode === 'today'
+                    ? `LIVE • ${String(data.currentDay || '').toUpperCase()}`
+                    : `${mode.toUpperCase()} • ${String(data.currentDay || '').toUpperCase()}`;
+                msgEl.textContent = data.message || 'Schedule loaded.';
+                listContainer.innerHTML = '';
+
+                const classes = Array.isArray(data.allClasses) && data.allClasses.length
+                    ? data.allClasses
+                    : [data.nextClass, ...(data.upcomingClasses || [])].filter(Boolean);
+
+                if (!classes.length) {
+                    callout.style.display = 'none';
+                    listContainer.innerHTML = `
+                        <div class="tt-card">
+                            <div class="tt-title"><i class="fas fa-check-circle" style="color:var(--green)"></i> No classes found for this selection.</div>
+                            <div class="tt-room">Try another day/date or switch to weekly view.</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                classes.forEach((c, idx) => {
+                    const isMain = idx === 0;
+                    const isOngoing = Boolean(mode === 'today' && isMain && c.isOngoing);
+                    const tag = isMain
+                        ? `<span class="badge ${isOngoing ? 'badge-red' : 'badge-orange'}">${isOngoing ? 'ONGOING' : 'UPCOMING'}</span>`
+                        : '';
+                    listContainer.insertAdjacentHTML('beforeend', classCardHtml(c, isMain, tag));
+                });
+
+                const first = classes[0];
+                callout.style.display = 'flex';
+                if (mode === 'today' && first.isOngoing) {
+                    let occString = '';
+                    if (first.current_occupancy !== null && first.room_capacity) {
+                        occString = ` Room occupancy is around ${Math.round((first.current_occupancy / first.room_capacity) * 100)}%.`;
+                    }
+                    actionEl.textContent = `Currently in ${first.room_name}.${occString}`;
+                } else {
+                    const walk = Math.ceil((first.distance_from_central || 400) / 80) || 5;
+                    actionEl.textContent = `Plan for ${walk} min walk to ${first.room_name}.`;
+                }
+            };
+
+            const renderWeek = (data) => {
+                dayBadge.textContent = `WEEK • ${data.weekStart || '--'} to ${data.weekEnd || '--'}`;
+                msgEl.textContent = data.message || 'Weekly schedule loaded.';
+                callout.style.display = 'none';
+                listContainer.innerHTML = '';
+
+                const weekRows = Array.isArray(data.weeklySchedule) ? data.weeklySchedule : [];
+                if (!weekRows.length) {
+                    listContainer.innerHTML = `
+                        <div class="tt-card">
+                            <div class="tt-title" style="color: var(--text-muted)">No weekly data available.</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                weekRows.forEach((d) => {
+                    const classes = Array.isArray(d.classes) ? d.classes : [];
+                    const mini = classes.length
+                        ? classes.slice(0, 4).map((c) => `<div class="tt-mini-item">${format12(c.start_time)} - ${format12(c.end_time)} • ${escapeHtml(c.course_code)} (${escapeHtml(c.room_name || 'Room TBA')})</div>`).join('')
+                        : '<div class="tt-mini-item">No classes</div>';
+
+                    listContainer.insertAdjacentHTML('beforeend', `
+                        <div class="tt-week-group">
+                            <div class="tt-week-head">
+                                <h4>${escapeHtml(d.day)}</h4>
+                                <span class="tt-week-date">${escapeHtml(d.date)}</span>
+                            </div>
+                            ${mini}
+                        </div>
+                    `);
+                });
+            };
+
+            const getPath = () => {
+                const params = new URLSearchParams();
+                params.set('mode', currentMode);
+
+                if (currentMode === 'day') params.set('day', daySelect.value);
+                if (currentMode === 'date' && dateInput.value) params.set('date', dateInput.value);
+                if (currentMode === 'week' && weekStartInput.value) params.set('weekStart', weekStartInput.value);
+
+                return `/api/v1/campus/timetable/live?${params.toString()}`;
+            };
+
+            async function refreshSchedule() {
+                try {
+                    const res = await fetchWithFallback(getPath());
+                    const json = await res.json();
+
+                    if (!json.success) throw new Error(json.message || 'Failed to load timetable');
+
+                    if (json.mode === 'week') {
+                        renderWeek(json.data || {});
+                    } else {
+                        renderDayLike(json.data || {}, json.mode || currentMode);
+                    }
+                } catch (e) {
+                    console.error('Timetable request failed:', e);
+                    dayBadge.textContent = 'OFFLINE';
+                    msgEl.textContent = 'Could not load timetable right now.';
+                    listContainer.innerHTML = `
+                        <div class="tt-card">
+                            <div class="tt-title" style="color: var(--text-muted)">Could not load classes. Check backend connection.</div>
+                        </div>
+                    `;
+                }
+            }
+
+            function configureAutoRefresh() {
+                if (timer) clearInterval(timer);
+                if (currentMode === 'today') {
+                    timer = setInterval(refreshSchedule, 20000);
+                }
+            }
+
+            controls.forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    currentMode = btn.dataset.mode;
+                    controls.forEach((chip) => chip.classList.toggle('active', chip === btn));
+                    setFilterVisibility();
+                    configureAutoRefresh();
+                    refreshSchedule();
+                });
+            });
+
+            if (applyBtn) applyBtn.addEventListener('click', refreshSchedule);
+            if (daySelect) daySelect.value = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+            if (dateInput) dateInput.valueAsDate = new Date();
+            if (weekStartInput) weekStartInput.valueAsDate = new Date();
+
+            setFilterVisibility();
+            configureAutoRefresh();
+            refreshSchedule();
+
+            const chatInput = document.getElementById('chatInput');
+            const chatSend = document.getElementById('chatSend');
+            const floatingChat = document.getElementById('floatingChat');
+
+            function openChatWorkspace(prefill) {
+                const query = (prefill || '').trim();
+                const target = query ? `/chat?q=${encodeURIComponent(query)}` : '/chat';
+                window.location.href = target;
+            }
+
+            if (floatingChat) floatingChat.addEventListener('click', () => openChatWorkspace(chatInput ? chatInput.value : ''));
+            if (chatSend) {
+                chatSend.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openChatWorkspace(chatInput ? chatInput.value : '');
+                });
+            }
+            if (chatInput) {
+                chatInput.addEventListener('focus', () => openChatWorkspace(chatInput.value));
+                chatInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openChatWorkspace(chatInput.value);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

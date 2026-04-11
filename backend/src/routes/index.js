@@ -14,6 +14,8 @@ const apiKeyRoutes = require('./apiKeyRoutes');
 router.use('/llm', apiKeyRoutes);
 const assistantRoutes = require('./assistantRoutes');
 router.use('/assistant', assistantRoutes);
+const campusRoutes = require('./campusRoutes');
+router.use('/campus', campusRoutes);
 
 // Add future routes here
 // router.use('/products', productRoutes);
