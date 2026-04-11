@@ -10,11 +10,23 @@
   const modelSelect   = document.getElementById('modelSelect');
   const keyStatus     = document.getElementById('keyStatus');
 
+  const settingsPanel = document.getElementById('settingsPanel');
+  const toggleSettingsBtn = document.getElementById('toggleSettingsBtn');
+
+  if (toggleSettingsBtn && settingsPanel) {
+    toggleSettingsBtn.addEventListener('click', () => {
+      const isCollapsed = settingsPanel.classList.toggle('collapsed');
+      toggleSettingsBtn.innerHTML = isCollapsed ? '<i class="fas fa-chevron-right"></i>' : '<i class="fas fa-chevron-left"></i>';
+    });
+  }
+
   /* ─── Resolve the backend base URL ─── */
   function apiBases() {
     const list = [];
-    // If already being served by the backend on :5000, use relative paths first
-    if (window.location.port === '5000') list.push('');
+    // Always prefer same-origin API.
+    list.push('');
+    list.push('http://127.0.0.1:30000');
+    list.push('http://localhost:30000');
     list.push('http://127.0.0.1:5000');
     list.push('http://localhost:5000');
     if (
@@ -22,6 +34,7 @@
       window.location.hostname !== 'localhost' &&
       window.location.hostname !== '127.0.0.1'
     ) {
+      list.push(`http://${window.location.hostname}:30000`);
       list.push(`http://${window.location.hostname}:5000`);
     }
     return [...new Set(list)];
@@ -173,15 +186,39 @@
     }
   }
 
+  /* ─── Session ID for conversation memory ─── */
+  const _sessionId = (() => {
+    let sid = sessionStorage.getItem('campusflow_chat_sid');
+    if (!sid) {
+      sid = 'chat_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+      sessionStorage.setItem('campusflow_chat_sid', sid);
+    }
+    return sid;
+  })();
+
   /* ─── Ask the campus assistant ─── */
   async function askAssistant(question) {
     const model = modelSelect.disabled ? null : modelSelect.value;
+    let userLat = 19.1334;
+    let userLng = 72.9133;
+
+    if ('geolocation' in navigator) {
+      try {
+        const pos = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3000 });
+        });
+        userLat = pos.coords.latitude;
+        userLng = pos.coords.longitude;
+      } catch (_) {}
+    }
+
     const payload = {
       question,
       model: model || undefined,
-      userLat: 19.1334,
-      userLng: 72.9133,
-      userFloor: 0
+      userLat,
+      userLng,
+      userFloor: 0,
+      sessionId: _sessionId   // ← enables multi-turn memory + anti-repetition
     };
 
     const resp = await fetchWithFallback('/api/v1/assistant/query', {

@@ -39,29 +39,29 @@ async function simulatorFn() {
     const day = days[now.getDay()];
 
     const timetableQuery = `
-      SELECT room_name, capacity, enrolled 
+      SELECT room_name, expected_students as enrolled 
       FROM timetable 
-      WHERE day_of_week = $1 AND start_time <= $2 AND end_time >= $2
+      WHERE day = $1 
+      AND CURRENT_TIME >= TO_TIMESTAMP(SPLIT_PART(time_slot, '-', 1), 'HH24:MI')::time
+      AND CURRENT_TIME < TO_TIMESTAMP(SPLIT_PART(time_slot, '-', 2), 'HH24:MI')::time
     `;
-    const activeClassesRes = await safeQuery(timetableQuery, [day, istTimeStr]);
+    const activeClassesRes = await safeQuery(timetableQuery, [day]);
     const activeClasses = activeClassesRes.rows;
     // Build a map of active rooms
     const activeRoomMap = {};
     for (const c of activeClasses) activeRoomMap[c.room_name] = c;
 
     // 1) Update classrooms occupancy
-    const roomsRes = await safeQuery("SELECT id, room_number, capacity, current_occupancy FROM rooms");
+    const roomsRes = await safeQuery("SELECT id, room_name, capacity, current_occupancy FROM classrooms");
     for (const r of roomsRes.rows) {
       if (!r.capacity) continue;
       
-      const { id, room_number, capacity, current_occupancy } = r;
-      // Active class map usually matches room_name against room_number, let's treat them as equivalent
-      const room_name = room_number;
+      const { id, room_name, capacity, current_occupancy } = r;
 
       if (activeRoomMap[room_name]) { // It's class time!
         const classData = activeRoomMap[room_name];
         // Enforce high occupancy (80-95% of enrolled)
-        const targetOcc = Math.min(capacity, Math.floor(classData.enrolled * (0.8 + Math.random() * 0.15)));
+        const targetOcc = Math.min(capacity, Math.floor((classData.enrolled || 15) * (0.8 + Math.random() * 0.15)));
         
         // Slightly random fluctuation if already close to target
         let newOcc = targetOcc;
@@ -72,7 +72,7 @@ async function simulatorFn() {
 
         if (newOcc !== current_occupancy) {
           const isAvail = newOcc < (capacity * 0.9);
-          await safeQuery('UPDATE rooms SET current_occupancy = $1, is_available = $2 WHERE id = $3', [newOcc, isAvail, id]);
+          await safeQuery("UPDATE classrooms SET current_occupancy = $1, status = $2 WHERE id = $3", [newOcc, isAvail ? 'open' : 'full', id]);
           console.log(`${ts()} 📚 Class active in ${room_name}: ${newOcc}/${capacity} filled`);
         }
       } else {
@@ -90,9 +90,7 @@ async function simulatorFn() {
           
           if (newOcc !== current_occupancy) {
             const isAvail = newOcc < (capacity * 0.9);
-            await safeQuery('UPDATE rooms SET current_occupancy = $1, is_available = $2 WHERE id = $3', [newOcc, isAvail, id]);
-            // const percent = Math.round((newOcc / capacity) * 100);
-            // console.log(`${ts()} 🏫 Room ${room_name || room_number}: ${newOcc}/${capacity} (${percent}% full)`);
+            await safeQuery("UPDATE classrooms SET current_occupancy = $1, status = $2 WHERE id = $3", [newOcc, isAvail ? 'open' : 'full', id]);
           }
         }
       }
@@ -101,18 +99,18 @@ async function simulatorFn() {
     console.error(`${ts()} ❌ Classrooms update failed:`, err.message || err);
   }
 
-  // 2) Update parking slots occupancy
+  // 2) Update parking spots occupancy
   try {
-    const parkRes = await safeQuery('SELECT id, slot_number, is_occupied FROM parking_slots');
+    const parkRes = await safeQuery("SELECT id, spot_name, status FROM parking_spots");
     for (const p of parkRes.rows) {
-      let newStatus = p.is_occupied;
+      let newStatus = p.status === 'occupied';
 
       // rules: empty -> occupied with 20% prob, occupied -> empty with 20% prob
       if (Math.random() < 0.20) {
-        newStatus = !p.is_occupied;
-        await safeQuery('UPDATE parking_slots SET is_occupied = $1 WHERE id = $2', [newStatus, p.id]);
+        newStatus = !newStatus;
+        await safeQuery("UPDATE parking_spots SET status = $1 WHERE id = $2", [newStatus ? 'occupied' : 'empty', p.id]);
         const verb = newStatus ? '→ CAR ARRIVED 🚗' : '→ CAR LEFT (Free) 🟢';
-        console.log(`${ts()} 🅿️ Slot ${p.slot_number} ${verb}`);
+        console.log(`${ts()} 🅿️ Spot ${p.spot_name} ${verb}`);
       }
     }
   } catch (err) {

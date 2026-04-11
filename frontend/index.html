@@ -23,6 +23,7 @@
                 <a href="#spaces">Spaces</a>
                 <a href="#" id="navChatBtn">Chat</a>
                 <a href="timetable.html">Timetable</a>
+                <a href="/reserve">Book Class</a>
             </div>
         </div>
         <div class="nav-right">
@@ -72,7 +73,7 @@
                 <p class="hero-sub">Your campus. One intelligent decision at a time.<br>Here's what we recommend right now.</p>
                 <div class="hero-actions">
                     <button class="btn btn-primary" id="startPlanBtn">
-                        <i class="fas fa-play"></i> Start This Plan
+                        <i class="fas fa-play"></i> Live Parking
                     </button>
                     <button class="btn btn-outline" id="exploreCampusBtn">
                         <i class="fas fa-compass"></i> Explore Campus
@@ -557,30 +558,37 @@
         <div class="chat-modal-body">
             <button class="chat-modal-close" id="chatModalClose"><i class="fas fa-times"></i></button>
             <main class="chat-modal-layout">
-                <aside class="chat-modal-settings">
-                    <h2><i class="fas fa-key"></i> LLM Setup</h2>
-                    <p class="hint">Save your API key once. Models load from your provider automatically.</p>
-              
-                    <label for="apiKey">API Key</label>
-                    <input id="apiKey" type="password" placeholder="Paste OpenAI or Gemini key">
-              
-                    <div class="row">
-                      <button id="saveKeyBtn" class="btn primary">Save Key</button>
-                      <button id="clearKeyBtn" class="btn warn">Clear</button>
+                <aside id="chatModalSettings" class="chat-modal-settings collapsed">
+                    <div class="settings-content">
+                        <h2><i class="fas fa-key"></i> LLM Setup</h2>
+                        <p class="hint">Save your API key once. Models load from your provider automatically.</p>
+                  
+                        <label for="apiKey">API Key</label>
+                        <input id="apiKey" type="password" placeholder="Paste OpenAI or Gemini key">
+                  
+                        <div class="row">
+                          <button id="saveKeyBtn" class="btn primary">Save Key</button>
+                          <button id="clearKeyBtn" class="btn warn">Clear</button>
+                        </div>
+                  
+                        <label for="modelSelect">Model</label>
+                        <select id="modelSelect" disabled>
+                          <option>Save key first</option>
+                        </select>
+                  
+                        <p id="keyStatus" class="status">No API key saved.</p>
                     </div>
-              
-                    <label for="modelSelect">Model</label>
-                    <select id="modelSelect" disabled>
-                      <option>Save key first</option>
-                    </select>
-              
-                    <p id="keyStatus" class="status">No API key saved.</p>
                 </aside>
           
                 <section class="chat-modal-chatbox">
                     <header class="chat-head">
-                        <h1>Campus Assistant</h1>
-                        <p>Ask about classrooms, parking, routes, and real-time campus context.</p>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <button id="toggleModalSettingsBtn" class="btn ghost icon-btn" title="Toggle API Settings" style="padding: 10px; border-radius: 50%;"><i class="fas fa-chevron-right"></i></button>
+                            <div>
+                                <h1>Campus Assistant</h1>
+                                <p style="margin: 4px 0 0; color: var(--text-secondary);">Ask about classrooms, parking, routes, and real-time campus context.</p>
+                            </div>
+                        </div>
                     </header>
               
                     <div id="chatMessages" class="messages chat-messages"></div>

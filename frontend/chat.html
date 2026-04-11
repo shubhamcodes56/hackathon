@@ -25,6 +25,7 @@
         <a href="/dashboard#density">Density</a>
         <a href="/dashboard#spaces">Spaces</a>
         <a href="/chat" class="active">Chat</a>
+        <a href="/reserve">Book Class</a>
       </div>
     </div>
     <div class="top-actions">
@@ -33,30 +34,37 @@
   </nav>
 
   <main class="layout">
-    <aside class="panel settings">
-      <h2><i class="fas fa-key"></i> LLM Setup</h2>
-      <p class="hint">Save your API key once. Models load from your provider automatically.</p>
+    <aside id="settingsPanel" class="panel settings collapsed">
+      <div class="settings-content">
+        <h2><i class="fas fa-key"></i> LLM Setup</h2>
+        <p class="hint">Save your API key once. Models load from your provider automatically.</p>
 
-      <label for="apiKey">API Key</label>
-      <input id="apiKey" type="password" placeholder="Paste OpenAI or Gemini key">
+        <label for="apiKey">API Key</label>
+        <input id="apiKey" type="password" placeholder="Paste OpenAI or Gemini key">
 
-      <div class="row">
-        <button id="saveKeyBtn" class="btn primary">Save Key</button>
-        <button id="clearKeyBtn" class="btn warn">Clear</button>
+        <div class="row">
+          <button id="saveKeyBtn" class="btn primary">Save Key</button>
+          <button id="clearKeyBtn" class="btn warn">Clear</button>
+        </div>
+
+        <label for="modelSelect">Model</label>
+        <select id="modelSelect" disabled>
+          <option>Save key first</option>
+        </select>
+
+        <p id="keyStatus" class="status">No API key saved.</p>
       </div>
-
-      <label for="modelSelect">Model</label>
-      <select id="modelSelect" disabled>
-        <option>Save key first</option>
-      </select>
-
-      <p id="keyStatus" class="status">No API key saved.</p>
     </aside>
 
     <section class="panel chatbox">
       <header class="chat-head">
-        <h1>Campus Assistant</h1>
-        <p>Ask about classrooms, parking, routes, and real-time campus context.</p>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <button id="toggleSettingsBtn" class="btn ghost icon-btn" title="Toggle API Settings" style="padding: 10px; border-radius: 50%;"><i class="fas fa-chevron-right"></i></button>
+          <div>
+            <h1>Campus Assistant</h1>
+            <p style="margin: 4px 0 0; color: var(--text-secondary);">Ask about classrooms, parking, routes, and real-time campus context.</p>
+          </div>
+        </div>
       </header>
 
       <div id="messages" class="messages"></div>

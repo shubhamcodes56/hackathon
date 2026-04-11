@@ -35,10 +35,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	function apiBases() {
 		const bases = [];
-		if (window.location.port === '5000') bases.push('');
+		if (window.location.port === '5000' || window.location.port === '30000') bases.push('');
+		bases.push('http://127.0.0.1:30000');
+		bases.push('http://localhost:30000');
 		bases.push('http://127.0.0.1:5000');
 		bases.push('http://localhost:5000');
 		if (window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+			bases.push(`http://${window.location.hostname}:30000`);
 			bases.push(`http://${window.location.hostname}:5000`);
 		}
 		return [...new Set(bases)];

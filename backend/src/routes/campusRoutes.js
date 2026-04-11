@@ -10,5 +10,9 @@ router.get('/upcoming-alert', campusController.upcomingAlert);
 router.get('/timetable/live', campusController.timetableLive);
 // GET /api/v1/campus/dashboard-live
 router.get('/dashboard-live', campusController.dashboardLive);
+// GET /api/v1/campus/slots
+router.get('/slots', campusController.workspaceSlots);
+// POST /api/v1/campus/book
+router.post('/book', campusController.bookWorkspaceSlot);
 
 module.exports = router;

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Campus Flow | Workspace Reservation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/reserve.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <div class="brand">Campus Flow</div>
+      <nav class="quickNav" aria-label="Primary">
+        <a href="/dashboard">Dashboard</a>
+        <a href="timetable.html">Timetable</a>
+        <a href="/chat">Chat</a>
+        <a href="/reserve" class="active">Book Class</a>
+      </nav>
+      <div class="avatar">A</div>
+    </header>
+
+    <main class="grid">
+      <section class="left">
+        <p class="eyebrow">WORKSPACE AVAILABILITY</p>
+        <h1>Reserve your perfect space</h1>
+
+        <label class="label" for="searchInput">Location Details</label>
+        <div class="searchWrap">
+          <span class="searchIcon">⌕</span>
+          <input id="searchInput" placeholder="Search by room / course" />
+        </div>
+
+        <div class="dateStrip" id="dateStrip"></div>
+
+        <p class="hint" id="dataHint">Loading live timetable availability...</p>
+      </section>
+
+      <section class="right">
+        <div class="rightHead">
+          <h2>SELECT TIME SLOT</h2>
+          <span>AVAILABLE TODAY</span>
+        </div>
+        <div id="slotList" class="slotList"></div>
+      </section>
+    </main>
+
+    <button id="bookBtn" class="bookBtn">Book Class</button>
+  </div>
+
+  <script src="js/reserve.js"></script>
+</body>
+</html>

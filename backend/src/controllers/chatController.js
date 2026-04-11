@@ -1,12 +1,10 @@
 /**
  * chatController.js
- * Handles POST /api/v1/llm/chat — the dedicated chat page conversation proxy.
- * Imports the system context builder from assistantController for consistency.
+ * Handles POST /api/v1/llm/chat — multi-turn chat proxy.
+ * Uses the shared buildSystemContext from assistantController (with prediction data).
  */
 
 const { readKey } = require('../utils/keyStore');
-
-// Import the shared buildSystemContext from assistantController
 const assistantController = require('./assistantController');
 
 // ─── Main chat handler (multi-turn conversation) ───
@@ -17,28 +15,29 @@ exports.chat = async (req, res) => {
   }
 
   const key = readKey();
-  if (!key) return res.status(403).json({ error: 'No API key saved' });
+  if (!key) return res.status(403).json({ error: 'No API key saved. Please add your API key in the settings panel to use the chat.' });
 
-  // Build system prompt from the shared function
-  let systemPrompt;
-  if (assistantController.buildSystemContext) {
-    systemPrompt = await assistantController.buildSystemContext(userLat, userLng, userFloor);
-  } else {
-    // Fallback: import db and build a minimal context
-    const db = require('../config/db');
-    systemPrompt = `You are CampusFlow AI — the IITB Campus Intelligence assistant. Answer questions about classrooms, timetable, parking, and campus navigation naturally and concisely.`;
-  }
+  // Build shared system prompt (with predictions + anti-repetition)
+  const systemPrompt = assistantController.buildSystemContext
+    ? await assistantController.buildSystemContext(
+        parseFloat(userLat) || 19.1334,
+        parseFloat(userLng) || 72.9133,
+        parseInt(userFloor) || 0,
+        messages  // pass conversation to get anti-repetition context
+      )
+    : 'You are CampusFlow AI — the IITB Campus Intelligence assistant. Answer naturally and concisely.';
 
   try {
-    // ── Gemini path ──
     const isGemini = !key.startsWith('sk-') && !key.startsWith('sk-proj-');
+
+    // ── Gemini path ──
     if (isGemini) {
       const geminiModel = model || 'gemini-2.0-flash';
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${key}`;
 
       const contents = [
         { role: 'user',  parts: [{ text: systemPrompt }] },
-        { role: 'model', parts: [{ text: 'Understood. I am CampusFlow AI with full access to the IITB timetable, live classroom occupancy, parking data, and distance calculations.' }] },
+        { role: 'model', parts: [{ text: 'Understood. I am CampusFlow AI with full live access to the IITB timetable, classroom data, parking, and predictive intelligence. I will give fresh, varied, data-driven answers with future predictions.' }] },
         ...messages.map(m => ({
           role: m.role === 'assistant' ? 'model' : 'user',
           parts: [{ text: m.content }]
@@ -50,7 +49,12 @@ exports.chat = async (req, res) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents,
-          generationConfig: { temperature: 0.4, maxOutputTokens: 2048 }
+          generationConfig: {
+            temperature: 0.75,
+            topP: 0.92,
+            topK: 40,
+            maxOutputTokens: 1024
+          }
         })
       });
 
@@ -82,8 +86,10 @@ exports.chat = async (req, res) => {
           { role: 'system', content: systemPrompt },
           ...messages
         ],
-        max_tokens: 2048,
-        temperature: 0.4
+        max_tokens: 1024,
+        temperature: 0.75,
+        presence_penalty: 0.6,
+        frequency_penalty: 0.4
       })
     });
 

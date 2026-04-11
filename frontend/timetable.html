@@ -220,6 +220,7 @@
             <div class="nav-links" style="margin-left:30px; display:flex; gap:20px;">
                 <a href="index.html" style="color:var(--text-muted); text-decoration:none; font-size:0.9rem; font-weight:500;">DASHBOARD</a>
                 <a href="timetable.html" style="color:var(--text-primary); text-decoration:none; font-size:0.9rem; font-weight:600; border-bottom:2px solid var(--red); padding-bottom:5px;">TIMETABLE</a>
+                <a href="/reserve" style="color:var(--text-muted); text-decoration:none; font-size:0.9rem; font-weight:500;">BOOK CLASS</a>
             </div>
         </div>
         <div class="nav-right">
@@ -312,10 +313,14 @@
     <script>
         function apiBases() {
             const bases = [];
-            if (window.location.port === '5000') bases.push('');
+            // Always try same-origin first so active backend port is used.
+            bases.push('');
+            bases.push('http://127.0.0.1:30000');
+            bases.push('http://localhost:30000');
             bases.push('http://127.0.0.1:5000');
             bases.push('http://localhost:5000');
-            if (window.location.hostname && window.location.hostname !== 'localhost') {
+            if (window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                bases.push(`http://${window.location.hostname}:30000`);
                 bases.push(`http://${window.location.hostname}:5000`);
             }
             return [...new Set(bases)];
@@ -404,7 +409,8 @@
                 dayBadge.textContent = mode === 'today'
                     ? `LIVE • ${String(data.currentDay || '').toUpperCase()}`
                     : `${mode.toUpperCase()} • ${String(data.currentDay || '').toUpperCase()}`;
-                msgEl.textContent = data.message || 'Schedule loaded.';
+                const amenityLine = data.amenitySummary ? ` Live amenities: ${data.amenitySummary}.` : '';
+                msgEl.textContent = `${data.message || 'Schedule loaded.'}${amenityLine}`;
                 listContainer.innerHTML = '';
 
                 const classes = Array.isArray(data.allClasses) && data.allClasses.length
@@ -447,7 +453,8 @@
 
             const renderWeek = (data) => {
                 dayBadge.textContent = `WEEK • ${data.weekStart || '--'} to ${data.weekEnd || '--'}`;
-                msgEl.textContent = data.message || 'Weekly schedule loaded.';
+                const amenityLine = data.amenitySummary ? ` Live amenities: ${data.amenitySummary}.` : '';
+                msgEl.textContent = `${data.message || 'Weekly schedule loaded.'}${amenityLine}`;
                 callout.style.display = 'none';
                 listContainer.innerHTML = '';
 

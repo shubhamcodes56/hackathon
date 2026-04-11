@@ -19,7 +19,8 @@
 
   function apiBases() {
     const bases = [];
-    if (window.location.port === '5000') bases.push('');
+    // Always try current origin first (works for any backend port, e.g. 30000).
+    bases.push('');
     bases.push('http://127.0.0.1:5000');
     bases.push('http://localhost:5000');
     if (window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {

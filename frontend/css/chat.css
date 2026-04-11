@@ -116,8 +116,7 @@ body {
   max-width: 1200px;
   margin: 24px auto;
   padding: 0 16px 24px;
-  display: grid;
-  grid-template-columns: 320px 1fr;
+  display: flex;
   gap: 16px;
 }
 
@@ -129,7 +128,23 @@ body {
 }
 
 .settings {
+  width: 320px;
+  flex-shrink: 0;
   padding: 16px;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, padding 0.3s ease, margin 0.3s ease;
+  overflow: hidden;
+}
+
+.settings.collapsed {
+  width: 0;
+  opacity: 0;
+  padding: 0;
+  border: none;
+  margin: 0;
+}
+
+.settings-content {
+  width: 288px; /* Fixed width to prevent re-flow during animation */
 }
 
 .settings h2 {
@@ -227,6 +242,7 @@ input:focus, select:focus {
   display: flex;
   flex-direction: column;
   min-height: 74vh;
+  flex-grow: 1;
 }
 
 .chat-head {
@@ -262,13 +278,13 @@ input:focus, select:focus {
 }
 
 .bubble.user {
-  align-self: flex-end;
+  align-self: flex-start;
   color: #fff;
   background: linear-gradient(135deg, #0b84ff, #1262dd);
 }
 
 .bubble.bot {
-  align-self: flex-start;
+  align-self: flex-end;
   background: #fff;
   border: 1px solid var(--border);
 }

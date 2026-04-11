@@ -1,4 +1,30 @@
+const fs = require('fs');
+const path = require('path');
 const db = require('../config/db');
+const { getAmenitySimulationSnapshot } = require('../utils/liveAmenitySimulation');
+
+const bookingsPath = path.join(__dirname, '../../data/workspace_bookings.json');
+
+function ensureBookingsFile() {
+  const dir = path.dirname(bookingsPath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(bookingsPath)) fs.writeFileSync(bookingsPath, JSON.stringify({}, null, 2));
+}
+
+function readBookings() {
+  try {
+    ensureBookingsFile();
+    const raw = fs.readFileSync(bookingsPath, 'utf8');
+    return JSON.parse(raw || '{}');
+  } catch (_err) {
+    return {};
+  }
+}
+
+function writeBookings(payload) {
+  ensureBookingsFile();
+  fs.writeFileSync(bookingsPath, JSON.stringify(payload, null, 2));
+}
 
 function safeInt(n, fallback = 0) {
   const v = Number(n);
@@ -12,6 +38,14 @@ function pct(occ, cap, fallback = null) {
   return Math.max(0, Math.min(100, Math.round((o / c) * 100)));
 }
 
+function roomZoneFromDistance(distanceFromMain) {
+  const d = safeInt(distanceFromMain, 0);
+  if (d <= 20) return 'Academic Core';
+  if (d <= 50) return 'Central Spine';
+  if (d <= 80) return 'North Wing';
+  return 'Outer Ring';
+}
+
 async function queryRows(sql, params = []) {
   try {
     const result = await db.query(sql, params);
@@ -22,53 +56,67 @@ async function queryRows(sql, params = []) {
 }
 
 async function getRoomsData() {
-  // Use the actual 'rooms' table (not 'classrooms')
   const classrooms = await queryRows(`
     SELECT
       id,
-      room_number AS room_name,
-      room_type AS block,
+      room_name,
+      distance_from_main,
       capacity,
       current_occupancy,
-      COALESCE(current_occupancy::float / NULLIF(capacity, 0) * 100, 0) AS fullness_pct
-    FROM rooms
-    WHERE capacity > 0 AND is_available IS NOT FALSE
+      COALESCE(current_occupancy::float / NULLIF(capacity, 0) * 100, 0) AS fullness_pct,
+      status
+    FROM classrooms
     ORDER BY COALESCE(current_occupancy::float / NULLIF(capacity, 0), 0) ASC
-    LIMIT 500
   `);
 
   return classrooms.map((c) => {
     const fullness = pct(c.current_occupancy, c.capacity, 0);
     return {
       name: c.room_name || `Room ${c.id}`,
-      location: c.block || 'Campus',
+      location: roomZoneFromDistance(c.distance_from_main),
       occupancy: safeInt(c.current_occupancy, 0),
       capacity: safeInt(c.capacity, 0),
       fullnessPct: fullness,
-      isAvailable: fullness < 90,
-      distance: 300 // default walk distance
+      isAvailable: c.status === 'open',
+      distance: c.distance_from_main || 300
     };
   });
 }
 
 async function getParkingData() {
-  // Use parking_zones and parking_slots (actual schema)
-  const parkingZones = await queryRows(`
-    SELECT
-      pz.zone_name,
-      pz.total_slots,
-      COUNT(ps.id) FILTER (WHERE ps.is_occupied = false) AS free_slots
-    FROM parking_zones pz
-    LEFT JOIN parking_slots ps ON ps.zone_id = pz.id
-    GROUP BY pz.zone_name, pz.total_slots
-    ORDER BY free_slots DESC
+  const spots = await queryRows(`
+    SELECT spot_name, status, distance_from_main
+    FROM parking_spots
   `);
+  
+  const free = spots.filter(s => s.status === 'empty').length;
+  // Dashboard expects zones, so we aggregate our individual spots into one "zone"
+  return [{
+    zone: 'Main Campus Parking',
+    free: free,
+    total: spots.length || 1
+  }];
+}
 
-  return parkingZones.map((p) => ({
-    zone: p.zone_name,
-    free: safeInt(p.free_slots, 0),
-    total: safeInt(p.total_slots, 0)
-  }));
+async function getAmenitiesData() {
+  const snapshot = getAmenitySimulationSnapshot();
+  const students = await queryRows(`SELECT COUNT(*)::int AS total_students FROM people WHERE type = 'student'`);
+  const totalStudents = Number(students[0]?.total_students || 100);
+
+  return snapshot.records.map((r) => {
+    const studentSharePct = Math.round((Number(r.occupancy || 0) / Math.max(1, totalStudents)) * 100);
+    return {
+      name: r.name,
+      occupancy: Number(r.occupancy || 0),
+      capacity: Number(r.capacity || 1),
+      emptyPct: Number(r.emptyPct || 0),
+      filledPct: Number(r.filledPct || 0),
+      predictedEmpty15m: Number(r.predictedEmpty15m || 0),
+      studentsPct: studentSharePct,
+      suggestion: r.suggestion,
+      updatedAt: snapshot.updatedAt
+    };
+  });
 }
 
 function formatClock(date) {
@@ -89,17 +137,19 @@ function safePct(n, fallback = 0) {
 async function getTimetableRows(day, time) {
   return queryRows(
     `
-      SELECT t.*
+      SELECT t.id, t.day, t.time_slot, t.room_name, t.course as course_code, t.course as course_name, t.instructor, t.expected_students,
+             SPLIT_PART(t.time_slot, '-', 1) AS start_time,
+             SPLIT_PART(t.time_slot, '-', 2) AS end_time
       FROM timetable t
-      WHERE t.day_of_week = $1 AND t.end_time >= $2
-      ORDER BY t.start_time ASC
+      WHERE t.day = $1 AND TO_TIMESTAMP(SPLIT_PART(t.time_slot, '-', 2), 'HH24:MI')::time >= $2::time
+      ORDER BY TO_TIMESTAMP(SPLIT_PART(t.time_slot, '-', 1), 'HH24:MI')::time ASC
       LIMIT 10
     `,
     [day, time]
   );
 }
 
-function computeNextMoveFromData(rooms, parking) {
+function computeNextMoveFromData(rooms, parking, amenities = []) {
   const availableRooms = rooms
     .filter((r) => r.capacity > 0)
     .sort((a, b) => safeInt(a.fullnessPct, 100) - safeInt(b.fullnessPct, 100));
@@ -118,6 +168,16 @@ function computeNextMoveFromData(rooms, parking) {
   const walkTimeMin = 4 + Math.floor(Math.random() * 7);
   const confidence = Math.max(70, Math.min(97, 80 + Math.floor((100 - safeInt(bestRoom.fullnessPct, 0)) / 4)));
 
+  const bestAmenity = [...amenities].sort((a, b) => safeInt(b.emptyPct, 0) - safeInt(a.emptyPct, 0))[0];
+  const busiestAmenity = [...amenities].sort((a, b) => safeInt(b.filledPct, 0) - safeInt(a.filledPct, 0))[0];
+  const amenityHint = bestAmenity
+    ? ` Best amenity now: ${bestAmenity.name} (${bestAmenity.emptyPct}% empty).`
+    : '';
+
+  const cautionHint = busiestAmenity && safeInt(busiestAmenity.filledPct, 0) >= 70
+    ? ` Avoid ${busiestAmenity.name} for the next 10-15 min (${busiestAmenity.filledPct}% occupied).`
+    : '';
+
   const tip = safeInt(bestRoom.fullnessPct, 0) <= 35
     ? `Great time to move now. ${bestRoom.name} is mostly empty.`
     : safeInt(bestRoom.fullnessPct, 0) <= 65
@@ -132,7 +192,12 @@ function computeNextMoveFromData(rooms, parking) {
     parking: `${bestParking.zone} — ${bestParking.free} spots`,
     roomOccupancy: `${safeInt(bestRoom.fullnessPct, 0)}% filled`,
     confidence,
-    tip,
+    tip: `${tip}${amenityHint}${cautionHint}`.trim(),
+    explainLines: [
+      `Room signal: ${bestRoom.name} at ${safeInt(bestRoom.fullnessPct, 0)}% filled`,
+      `Parking signal: ${bestParking.zone} has ${safeInt(bestParking.free, 0)} free spots`,
+      bestAmenity ? `Amenity signal: ${bestAmenity.name} is ${bestAmenity.emptyPct}% empty` : 'Amenity signal unavailable'
+    ],
     raw: {
       room: bestRoom,
       parking: bestParking,
@@ -144,7 +209,7 @@ function computeNextMoveFromData(rooms, parking) {
   };
 }
 
-function computeAlertFromData(rooms, parking) {
+function computeAlertFromData(rooms, parking, amenities = []) {
   const avgRoomFullness = rooms.length
     ? Math.round(rooms.reduce((s, r) => s + safeInt(r.fullnessPct, 0), 0) / rooms.length)
     : 0;
@@ -159,7 +224,15 @@ function computeAlertFromData(rooms, parking) {
     .sort((a, b) => b.occupancy - a.occupancy);
 
   const topParkingPressure = parkingPressureScores[0] || { zone: 'Main Parking', occupancy: 0 };
-  const congestion = safePct(Math.round((avgRoomFullness * 0.6) + (topParkingPressure.occupancy * 0.4)), 35);
+  const avgAmenityFullness = amenities.length
+    ? Math.round(amenities.reduce((s, a) => s + safeInt(a.filledPct, 0), 0) / amenities.length)
+    : 0;
+
+  const topAmenityPressure = [...amenities]
+    .map((a) => ({ name: a.name, filledPct: safeInt(a.filledPct, 0), predictedEmpty15m: safeInt(a.predictedEmpty15m, 0) }))
+    .sort((a, b) => b.filledPct - a.filledPct)[0] || { name: 'Library', filledPct: 0, predictedEmpty15m: 0 };
+
+  const congestion = safePct(Math.round((avgRoomFullness * 0.5) + (topParkingPressure.occupancy * 0.3) + (avgAmenityFullness * 0.2)), 35);
 
   const crowdedLocations = rooms
     .filter((r) => safeInt(r.fullnessPct, 0) >= 70)
@@ -168,6 +241,7 @@ function computeAlertFromData(rooms, parking) {
 
   const affectedAreas = [
     ...new Set(crowdedLocations),
+    ...amenities.filter((a) => safeInt(a.filledPct, 0) >= 65).map((a) => a.name),
     topParkingPressure.zone,
     'Central Walkway'
   ].filter(Boolean).slice(0, 4);
@@ -184,10 +258,10 @@ function computeAlertFromData(rooms, parking) {
       : 'Moderate Flow Alert';
 
   const description = congestion >= 80
-    ? `High crowd activity expected around ${affectedAreas[0] || 'main campus'}. ${topParkingPressure.zone} is nearing full capacity. Consider moving 10 minutes earlier.`
+    ? `High pressure around ${affectedAreas[0] || 'Academic Core'} (${congestion}%). ${topParkingPressure.zone} is near full, and ${topAmenityPressure.name} is at ${topAmenityPressure.filledPct}% occupancy.`
     : congestion >= 60
-      ? `Foot traffic is increasing near ${affectedAreas[0] || 'major blocks'}. Parking pressure is rising at ${topParkingPressure.zone}. Plan an alternate route.`
-      : `Campus flow is stable, but pressure is building near ${affectedAreas[0] || 'key areas'}. Keep buffer time for smooth movement.`;
+      ? `Traffic is building near ${affectedAreas[0] || 'Central Spine'} (${congestion}%). Parking pressure is rising at ${topParkingPressure.zone}; ${topAmenityPressure.name} may tighten soon.`
+      : `Flow is stable (${congestion}%), but pressure is gradually building near ${affectedAreas[0] || 'North Wing'}. Keep a small buffer in transit time.`;
 
   return {
     title,
@@ -208,10 +282,12 @@ exports.nextMove = async (_req, res, next) => {
   try {
     const rooms = await getRoomsData();
     const parking = await getParkingData();
-    const nextMove = computeNextMoveFromData(rooms, parking);
+    const amenities = await getAmenitiesData();
+    const nextMove = computeNextMoveFromData(rooms, parking, amenities);
 
     return res.json({
       nextMove,
+      amenities,
       updatedAt: new Date().toISOString()
     });
   } catch (err) {
@@ -223,10 +299,12 @@ exports.upcomingAlert = async (_req, res, next) => {
   try {
     const rooms = await getRoomsData();
     const parking = await getParkingData();
-    const alert = computeAlertFromData(rooms, parking);
+    const amenities = await getAmenitiesData();
+    const alert = computeAlertFromData(rooms, parking, amenities);
 
     return res.json({
       alert,
+      amenities,
       updatedAt: new Date().toISOString()
     });
   } catch (err) {
@@ -238,6 +316,7 @@ exports.dashboardLive = async (_req, res, next) => {
   try {
     const rooms = await getRoomsData();
     const parking = await getParkingData();
+    const amenities = await getAmenitiesData();
 
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const now = new Date();
@@ -275,6 +354,13 @@ exports.dashboardLive = async (_req, res, next) => {
         title: 'Parking',
         subtitle: `${totalFreeParking}/${Math.max(totalParking, 1)} spots free campus-wide`,
         badge: 'LIVE'
+      },
+      amenities: {
+        title: 'Amenities',
+        subtitle: amenities.length
+          ? amenities.map((a) => `${a.name}: ${a.emptyPct}% empty`).join(' • ')
+          : 'No amenity simulation data',
+        badge: 'LIVE'
       }
     };
 
@@ -287,7 +373,14 @@ exports.dashboardLive = async (_req, res, next) => {
       type: (row.event_type || '').toLowerCase().includes('lab') ? 'lab' : (row.event_type || '').toLowerCase().includes('free') ? 'free' : 'class'
     }));
 
-    const density = [...rooms]
+    const densityFromAmenities = amenities.map((a) => ({
+      zone: a.name,
+      crowdPct: safeInt(a.filledPct, 0),
+      peakDescription: `15 min prediction: ${safeInt(a.predictedEmpty15m, 0)}% empty`,
+      tip: a.suggestion
+    }));
+
+    const densityFromRooms = [...rooms]
       .sort((a, b) => safeInt(b.fullnessPct, 0) - safeInt(a.fullnessPct, 0))
       .slice(0, 4)
       .map((r) => ({
@@ -297,7 +390,22 @@ exports.dashboardLive = async (_req, res, next) => {
         tip: safeInt(r.fullnessPct, 0) >= 75 ? 'Use nearby alternative block' : 'Comfortable right now'
       }));
 
-    const spaces = [...rooms]
+    const density = [...densityFromAmenities, ...densityFromRooms]
+      .sort((a, b) => safeInt(b.crowdPct, 0) - safeInt(a.crowdPct, 0))
+      .slice(0, 4);
+
+    const spacesFromAmenities = amenities
+      .map((a) => ({
+        name: a.name,
+        location: a.name,
+        availableSeats: Math.max(0, safeInt(a.capacity, 0) - safeInt(a.occupancy, 0)),
+        availabilityPct: safeInt(a.emptyPct, 0),
+        walkMin: a.name === 'Library' ? 6 : 4,
+        noiseLevel: safeInt(a.filledPct, 0) >= 70 ? 'High' : safeInt(a.filledPct, 0) >= 45 ? 'Moderate' : 'Low',
+        wifi: a.name === 'Library' ? 'Strong' : 'Good'
+      }));
+
+    const spacesFromRooms = [...rooms]
       .filter((r) => r.capacity > 0)
       .sort((a, b) => safeInt(a.fullnessPct, 100) - safeInt(b.fullnessPct, 100))
       .slice(0, 6)
@@ -314,6 +422,10 @@ exports.dashboardLive = async (_req, res, next) => {
         };
       });
 
+    const spaces = [...spacesFromAmenities, ...spacesFromRooms]
+      .sort((a, b) => safeInt(b.availabilityPct, 0) - safeInt(a.availabilityPct, 0))
+      .slice(0, 6);
+
     const stats = {
       minutesSaved: Math.max(5, Math.round((100 - avgRoomFullness) / 8) + 5),
       decisionAccuracy: Math.max(72, Math.min(97, 75 + Math.round((100 - avgRoomFullness) / 2))),
@@ -323,30 +435,31 @@ exports.dashboardLive = async (_req, res, next) => {
     const sections = {
       signals: {
         subtitle: `Live merge: ${signals.timetable.subtitle} | ${signals.classrooms.subtitle} | ${signals.parking.subtitle}`,
-        callout: `Real campus snapshot from your simulator: ${rooms.length} rooms tracked, ${totalFreeParking}/${Math.max(totalParking, 1)} parking spots currently free.`
+        callout: `Real campus snapshot: ${rooms.length} rooms, ${totalFreeParking}/${Math.max(totalParking, 1)} parking spots free, and live canteen/library simulation every 30s.`
       },
       alerts: {
-        subtitle: `Congestion currently at ${computeAlertFromData(rooms, parking).congestion}% with parking pressure focused around ${computeAlertFromData(rooms, parking).raw.topParkingPressure.zone}.`,
+        subtitle: `Congestion currently at ${computeAlertFromData(rooms, parking, amenities).congestion}% with parking pressure focused around ${computeAlertFromData(rooms, parking, amenities).raw.topParkingPressure.zone}.`,
         callout: `We detect crowd build-up from room occupancy + parking pressure and refresh the alert every 30 seconds.`
       },
       density: {
         subtitle: `Top crowded zones right now: ${density.map((d) => `${d.zone} (${d.crowdPct}%)`).join(', ') || 'No density data yet.'}`,
-        callout: `Density cards are generated from your live room occupancy feed.`
+        callout: `Density cards are generated from live room occupancy + canteen/library simulation feed.`
       },
       spaces: {
         subtitle: `Best calm spaces now: ${spaces.slice(0, 3).map((s) => `${s.name} (${s.availabilityPct}% free)`).join(', ') || 'No spaces available.'}`,
-        callout: `Quiet space cards are built from least-occupied rooms and updated with live simulator changes.`
+        callout: `Quiet space cards combine classrooms and amenities with live simulator updates.`
       }
     };
 
-    const alert = computeAlertFromData(rooms, parking);
-    const nextMove = computeNextMoveFromData(rooms, parking);
+    const alert = computeAlertFromData(rooms, parking, amenities);
+    const nextMove = computeNextMoveFromData(rooms, parking, amenities);
 
     return res.json({
       signals,
       timeline,
       density,
       spaces,
+      amenities,
       stats,
       nextMove,
       alert,
@@ -368,6 +481,8 @@ exports.timetableLive = async (req, res, next) => {
 
     const currentDay = days[now.getDay()];
     const currentTime = istTimeStr;
+    const amenities = await getAmenitiesData();
+    const amenitySummary = amenities.map((a) => `${a.name}: ${a.emptyPct}% empty`).join(' | ');
 
     const normalizeDay = (value) => {
       if (!value) return null;
@@ -394,22 +509,23 @@ exports.timetableLive = async (req, res, next) => {
     };
 
     const queryRowsForDay = async (day, onlyFuture) => {
-      // Join with rooms using room_number (actual schema, no 'classrooms' table)
       const baseSql = `
-        SELECT t.*,
-               r.current_occupancy,
-               r.capacity AS room_capacity,
-               300 AS distance_from_central
+        SELECT t.id, t.day, t.time_slot, t.room_name, t.course as course_code, t.course as course_name, t.instructor, t.expected_students,
+               c.current_occupancy,
+               c.capacity AS room_capacity,
+               c.distance_from_main AS distance_from_central,
+               SPLIT_PART(t.time_slot, '-', 1) AS start_time,
+               SPLIT_PART(t.time_slot, '-', 2) AS end_time
         FROM timetable t
-        LEFT JOIN rooms r ON r.room_number = t.room_name
-        WHERE t.day_of_week = $1
+        LEFT JOIN classrooms c ON c.room_name = t.room_name
+        WHERE t.day = $1
       `;
 
       if (onlyFuture) {
-        return queryRows(baseSql + ' AND t.end_time >= $2 ORDER BY t.start_time ASC', [day, currentTime]);
+        return queryRows(baseSql + ' AND TO_TIMESTAMP(SPLIT_PART(t.time_slot, \'-\', 2), \'HH24:MI\')::time >= $2::time ORDER BY TO_TIMESTAMP(SPLIT_PART(t.time_slot, \'-\', 1), \'HH24:MI\')::time ASC', [day, currentTime]);
       }
 
-      return queryRows(baseSql + ' ORDER BY t.start_time ASC', [day]);
+      return queryRows(baseSql + ' ORDER BY TO_TIMESTAMP(SPLIT_PART(t.time_slot, \'-\', 1), \'HH24:MI\')::time ASC', [day]);
     };
 
     const computeStartsInMinutes = (startTime) => {
@@ -474,6 +590,8 @@ exports.timetableLive = async (req, res, next) => {
       const selectedDay = selectedDayParam || currentDay;
       const rows = await queryRowsForDay(selectedDay, false);
       const data = buildDayPayload(selectedDay, rows, false);
+      data.liveAmenities = amenities;
+      data.amenitySummary = amenitySummary;
       return res.json({ success: true, mode: 'day', data, timestamp: now.toISOString() });
     }
 
@@ -485,6 +603,8 @@ exports.timetableLive = async (req, res, next) => {
 
       const rows = await queryRowsForDay(dateMeta.day, false);
       const data = buildDayPayload(dateMeta.day, rows, false, dateMeta.dateLabel);
+      data.liveAmenities = amenities;
+      data.amenitySummary = amenitySummary;
       return res.json({ success: true, mode: 'date', data, timestamp: now.toISOString() });
     }
 
@@ -520,6 +640,8 @@ exports.timetableLive = async (req, res, next) => {
           weekStart: weekDays[0]?.dateLabel || null,
           weekEnd: weekDays[6]?.dateLabel || null,
           weeklySchedule,
+          liveAmenities: amenities,
+          amenitySummary,
           currentDay,
           currentTime
         },
@@ -528,12 +650,125 @@ exports.timetableLive = async (req, res, next) => {
     }
 
     const liveRows = await queryRowsForDay(currentDay, true);
-    const data = buildDayPayload(currentDay, liveRows, true);
+    let data = buildDayPayload(currentDay, liveRows, true);
+
+    // If there are no remaining classes today, show the next day that has classes.
+    if (!liveRows.length) {
+      for (let offset = 1; offset <= 7; offset += 1) {
+        const probe = new Date(now);
+        probe.setDate(now.getDate() + offset);
+        const probeDay = days[probe.getDay()];
+        const rows = await queryRowsForDay(probeDay, false);
+        if (rows.length) {
+          data = buildDayPayload(probeDay, rows, false, formatDateLabel(probe));
+          data.message = `No more classes today. Next classes are on ${probeDay}.`;
+          data.fallbackFromToday = true;
+          break;
+        }
+      }
+    }
+
     return res.json({
       success: true,
       mode: 'today',
-      data,
+      data: {
+        ...data,
+        liveAmenities: amenities,
+        amenitySummary,
+      },
       timestamp: now.toISOString()
+    });
+  } catch (err) {
+    return next(err);
+  }
+};
+
+exports.workspaceSlots = async (req, res, next) => {
+  try {
+    const date = String(req.query.date || '2023-10-24');
+    const parsed = new Date(date);
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const day = Number.isNaN(parsed.getTime()) ? 'Tuesday' : days[parsed.getDay()];
+
+    const rows = await queryRows(
+      `SELECT t.course as course_code, t.course as course_name, t.instructor, t.room_name, 
+              SPLIT_PART(t.time_slot, '-', 1) AS start_time,
+              SPLIT_PART(t.time_slot, '-', 2) AS end_time,
+              COALESCE(c.current_occupancy, 0) AS current_occupancy, COALESCE(c.capacity, 0) AS capacity
+       FROM timetable t
+       LEFT JOIN classrooms c ON c.room_name = t.room_name
+       WHERE t.day = $1
+       ORDER BY TO_TIMESTAMP(SPLIT_PART(t.time_slot, '-', 1), 'HH24:MI')::time ASC
+       LIMIT 12`,
+      [day]
+    );
+
+    const bookings = readBookings();
+    const dayBookings = bookings[date] || {};
+
+    const slots = rows.map((r, idx) => {
+      const slotId = `${date}:${r.room_name}:${r.start_time}`;
+      const cap = Math.max(1, safeInt(r.capacity, 1));
+      const occ = safeInt(r.current_occupancy, 0);
+      const occPct = Math.round((occ / cap) * 100);
+      const booked = Boolean(dayBookings[slotId]);
+      const available = !booked && occPct < 85;
+
+      const label = idx < 2
+        ? 'Morning Quiet Session'
+        : idx < 5
+          ? 'Focus Deep Work Block'
+          : idx < 8
+            ? 'Project Collaboration Slot'
+            : 'Evening Revision Slot';
+
+      return {
+        id: slotId,
+        time: `${String(r.start_time).slice(0, 5)} - ${String(r.end_time).slice(0, 5)}`,
+        label,
+        courseCode: r.course_code,
+        courseName: r.course_name,
+        roomName: r.room_name,
+        instructor: r.instructor,
+        occupancyPct: occPct,
+        available,
+        status: booked ? 'booked' : available ? 'available' : 'limited'
+      };
+    });
+
+    return res.json({
+      success: true,
+      date,
+      day,
+      slots,
+      recommendedSlotId: (slots.find((s) => s.available) || slots[0] || {}).id || null
+    });
+  } catch (err) {
+    return next(err);
+  }
+};
+
+exports.bookWorkspaceSlot = async (req, res, next) => {
+  try {
+    const { slotId, date } = req.body || {};
+    if (!slotId || !date) {
+      return res.status(400).json({ success: false, message: 'slotId and date are required.' });
+    }
+
+    const bookings = readBookings();
+    if (!bookings[date]) bookings[date] = {};
+
+    if (bookings[date][slotId]) {
+      return res.status(409).json({ success: false, message: 'This slot is already booked.' });
+    }
+
+    bookings[date][slotId] = { bookedAt: new Date().toISOString() };
+    writeBookings(bookings);
+
+    return res.json({
+      success: true,
+      message: 'Booking confirmed successfully.',
+      data: { slotId, date }
     });
   } catch (err) {
     return next(err);

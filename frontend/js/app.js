@@ -48,10 +48,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // === API HELPERS ===
     function apiBases() {
         const bases = [];
-        if (window.location.port === '5000') bases.push('');
+        if (window.location.port === '5000' || window.location.port === '30000') bases.push('');
+        bases.push('http://127.0.0.1:30000');
+        bases.push('http://localhost:30000');
         bases.push('http://127.0.0.1:5000');
         bases.push('http://localhost:5000');
         if (window.location.hostname && window.location.hostname !== 'localhost') {
+            bases.push(`http://${window.location.hostname}:30000`);
             bases.push(`http://${window.location.hostname}:5000`);
         }
         return [...new Set(bases)];
@@ -459,7 +462,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function bubble(text, who) {
         if (!chatMessages) return;
         const div = document.createElement('div');
-        div.className = 'bubble ' + who;
+        div.className = 'chat-msg chat-animate ' + who;
         
         if (who === 'bot' && window.marked) {
             div.innerHTML = marked.parse(text);
@@ -476,13 +479,28 @@ document.addEventListener('DOMContentLoaded', () => {
     function showTyping() {
         if (typingEl || !chatMessages) return;
         typingEl = document.createElement('div');
-        typingEl.className = 'bubble bot typing-indicator';
+        typingEl.className = 'chat-msg bot typing-indicator';
         typingEl.innerHTML = '<span></span><span></span><span></span>';
         chatMessages.appendChild(typingEl);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
     function hideTyping() {
         if (typingEl) { typingEl.remove(); typingEl = null; }
+    }
+
+    /* ─── Settings Toggle ─── */
+    const toggleModalSettingsBtn = document.getElementById('toggleModalSettingsBtn');
+    const chatModalSettings = document.getElementById('chatModalSettings');
+    if (toggleModalSettingsBtn && chatModalSettings) {
+        toggleModalSettingsBtn.addEventListener('click', () => {
+            chatModalSettings.classList.toggle('collapsed');
+            const icon = toggleModalSettingsBtn.querySelector('i');
+            if (chatModalSettings.classList.contains('collapsed')) {
+                icon.className = 'fas fa-chevron-right';
+            } else {
+                icon.className = 'fas fa-chevron-left';
+            }
+        });
     }
 
     /* ─── Set UI state for key status ─── */
@@ -609,6 +627,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    /* ─── Session ID for conversation memory (unique per page load) ─── */
+    const _sessionId = (() => {
+        let sid = sessionStorage.getItem('campusflow_sid');
+        if (!sid) {
+            sid = 'sid_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+            sessionStorage.setItem('campusflow_sid', sid);
+        }
+        return sid;
+    })();
+
     /* ─── Ask the campus assistant ─── */
     async function askAssistant(question) {
         const model = (modelSelect && !modelSelect.disabled) ? modelSelect.value : null;
@@ -631,7 +659,8 @@ document.addEventListener('DOMContentLoaded', () => {
             model: model || undefined,
             userLat: userLat,
             userLng: userLng,
-            userFloor: 0
+            userFloor: 0,
+            sessionId: _sessionId   // ← enables multi-turn memory on the server
         };
 
         const resp = await fetchWithFallback('/api/v1/assistant/query', {

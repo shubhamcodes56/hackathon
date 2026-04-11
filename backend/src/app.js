@@ -39,17 +39,23 @@ app.get('/chat', (req, res) => {
     res.sendFile(path.join(frontendDir, 'chat.html'));
 });
 
+app.get('/reserve', (req, res) => {
+    res.sendFile(path.join(frontendDir, 'reserve.html'));
+});
+
 // 1. GLOBAL SECURITY MIDDLEWARES
 // Set security HTTP headers
 app.use(helmet());
 
 // Enable CORS for both localhost and 127.0.0.1 frontend origins.
 const allowedOrigins = new Set([
-    process.env.CLIENT_URL || 'http://localhost:3000',
+    process.env.CLIENT_URL || 'http://localhost:30000',
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     'http://localhost:5000',
-    'http://127.0.0.1:5000'
+    'http://127.0.0.1:5000',
+    'http://localhost:30000',
+    'http://127.0.0.1:30000'
 ]);
 
 app.use(cors({
