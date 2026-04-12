@@ -551,7 +551,13 @@ exports.timetableLive = async (req, res, next) => {
     const currentDay = days[now.getDay()];
     const currentTime = istTimeStr;
     const amenities = await getAmenitiesData();
+    const parking = await getParkingData();
+    const rooms = await getRoomsData();
     const amenitySummary = amenities.map((a) => `${a.name}: ${a.emptyPct}% empty`).join(' | ');
+    const parkingSummary = parking.map((p) => `${p.zone}: ${p.free}/${Math.max(1, p.total)} free`).join(' | ');
+    const roomSummary = rooms.length
+      ? `Avg room fullness: ${Math.round(rooms.reduce((sum, r) => sum + safeInt(r.fullnessPct, 0), 0) / rooms.length)}%`
+      : 'Room data unavailable';
 
     const normalizeDay = (value) => {
       if (!value) return null;
