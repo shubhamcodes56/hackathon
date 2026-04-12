@@ -36,7 +36,7 @@ function updateAmenitySimulationTick() {
   amenityLiveState.lastUpdatedAt = Date.now();
 }
 
-setInterval(updateAmenitySimulationTick, 30 * 1000);
+setInterval(updateAmenitySimulationTick, 60 * 1000);
 
 function getTrendDelta(history) {
   if (!Array.isArray(history) || history.length < 2) return 0;
@@ -57,7 +57,7 @@ function getAmenitySimulationSnapshot() {
     const filledPct = 100 - emptyPct;
 
     const trendDelta = getTrendDelta(amenityLiveState[name].history);
-    const projectedTicks = 30;
+    const projectedTicks = 15;
     const damping = 0.2;
     const predictedOcc15m = clamp(0, Math.round(occ + (trendDelta * projectedTicks * damping)), cap);
     const predictedEmpty15m = Math.round(((cap - predictedOcc15m) / cap) * 100);
@@ -89,4 +89,5 @@ function getAmenitySimulationSnapshot() {
 module.exports = {
   AMENITY_CAPACITY,
   getAmenitySimulationSnapshot,
+  SIMULATION_REFRESH_MS: 60 * 1000,
 };

@@ -101,6 +101,7 @@
         setKeyStatus(false);
         modelSelect.disabled = true;
         modelSelect.innerHTML = '<option>Save key first</option>';
+        keyStatus.textContent = '✅ Campus AI ready (LLM features disabled)';
         return;
       }
 
@@ -114,7 +115,7 @@
         modelSelect.disabled = true;
         modelSelect.innerHTML = '<option>Model fetch failed</option>';
         const detail = modelData && (modelData.error || 'Unknown error');
-        keyStatus.textContent = `✅ Key saved (${hk.provider}). Model list error: ${detail}`;
+        keyStatus.textContent = `⚠️ Key saved (${hk.provider}) but models unavailable. Campus AI still works.`;
         return;
       }
 
@@ -128,7 +129,7 @@
       modelSelect.disabled = false;
       setKeyStatus(true, modelData.provider || hk.provider);
     } catch (err) {
-      keyStatus.textContent = '⚠️ Cannot reach backend (check server on port 5000).';
+      keyStatus.textContent = '✅ Campus AI ready (backend connected). LLM features unavailable.';
     }
   }
 

@@ -2,6 +2,12 @@ const fs = require('fs');
 const path = require('path');
 const db = require('../config/db');
 const { getAmenitySimulationSnapshot } = require('../utils/liveAmenitySimulation');
+const {
+  getLiveSimulationMeta,
+  simulateOccupancy,
+  simulateParkingStatus,
+  getClassLiveLoad,
+} = require('../utils/liveCampusSimulation');
 
 const bookingsPath = path.join(__dirname, '../../data/workspace_bookings.json');
 
@@ -70,12 +76,19 @@ async function getRoomsData() {
   `);
 
   return classrooms.map((c) => {
-    const fullness = pct(c.current_occupancy, c.capacity, 0);
+    const cap = safeInt(c.capacity, 0);
+    const liveOcc = simulateOccupancy({
+      key: `room:${c.id || c.room_name}`,
+      baseOccupancy: safeInt(c.current_occupancy, 0),
+      capacity: cap,
+      drift: 0.14,
+    });
+    const fullness = pct(liveOcc, cap, 0);
     return {
       name: c.room_name || `Room ${c.id}`,
       location: roomZoneFromDistance(c.distance_from_main),
-      occupancy: safeInt(c.current_occupancy, 0),
-      capacity: safeInt(c.capacity, 0),
+      occupancy: liveOcc,
+      capacity: cap,
       fullnessPct: fullness,
       isAvailable: c.status === 'open',
       distance: c.distance_from_main || 300
@@ -89,12 +102,21 @@ async function getParkingData() {
     FROM parking_spots
   `);
   
-  const free = spots.filter(s => s.status === 'empty').length;
+  const simulatedSpots = spots.map((s) => ({
+    ...s,
+    live_status: simulateParkingStatus({
+      spotName: s.spot_name,
+      baseStatus: s.status,
+    }),
+  }));
+
+  const free = simulatedSpots.filter((s) => s.live_status === 'empty').length;
   // Dashboard expects zones, so we aggregate our individual spots into one "zone"
   return [{
     zone: 'Main Campus Parking',
     free: free,
-    total: spots.length || 1
+    total: simulatedSpots.length || 1,
+    spots: simulatedSpots
   }];
 }
 
@@ -135,7 +157,7 @@ function safePct(n, fallback = 0) {
 }
 
 async function getTimetableRows(day, time) {
-  return queryRows(
+  const rows = await queryRows(
     `
       SELECT t.id, t.day, t.time_slot, t.room_name, t.course as course_code, t.course as course_name, t.instructor, t.expected_students,
              SPLIT_PART(t.time_slot, '-', 1) AS start_time,
@@ -147,6 +169,47 @@ async function getTimetableRows(day, time) {
     `,
     [day, time]
   );
+
+  return rows.map((row) => {
+    const load = getClassLiveLoad({
+      classKey: `${row.course_code || row.course_name || 'CLASS'}:${row.room_name || 'ROOM'}`,
+      expectedStudents: safeInt(row.expected_students, 0),
+      roomCapacity: Math.max(1, safeInt(row.expected_students, 0)),
+      startTime: row.start_time,
+      endTime: row.end_time,
+      nowTime: String(time || '').slice(0, 5),
+    });
+
+    return {
+      ...row,
+      live_expected_students: load.liveStudents,
+      live_expected_pct: load.livePct,
+      live_is_active: load.isActive,
+    };
+  });
+}
+
+function buildLiveSimulationInfo({ rooms = [], parking = [], amenities = [], timetableRows = [] }) {
+  const meta = getLiveSimulationMeta();
+  const totalFreeParking = parking.reduce((sum, p) => sum + safeInt(p.free, 0), 0);
+  const totalParking = parking.reduce((sum, p) => sum + safeInt(p.total, 0), 0);
+  const avgRoomFullness = rooms.length
+    ? Math.round(rooms.reduce((sum, r) => sum + safeInt(r.fullnessPct, 0), 0) / rooms.length)
+    : 0;
+
+  return {
+    refreshSeconds: 60,
+    updatedAt: new Date(meta.updatedAt).toISOString(),
+    tick: meta.tick,
+    summary: {
+      roomsTracked: rooms.length,
+      avgRoomFullness,
+      parkingFree: totalFreeParking,
+      parkingTotal: totalParking,
+      activeLectures: timetableRows.filter((row) => Boolean(row.live_is_active)).length,
+      amenitiesTracked: amenities.length,
+    },
+  };
 }
 
 function computeNextMoveFromData(rooms, parking, amenities = []) {
@@ -284,11 +347,13 @@ exports.nextMove = async (_req, res, next) => {
     const parking = await getParkingData();
     const amenities = await getAmenitiesData();
     const nextMove = computeNextMoveFromData(rooms, parking, amenities);
+    const liveSimulation = buildLiveSimulationInfo({ rooms, parking, amenities });
 
     return res.json({
       nextMove,
       amenities,
-      updatedAt: new Date().toISOString()
+      liveSimulation,
+      updatedAt: liveSimulation.updatedAt
     });
   } catch (err) {
     return next(err);
@@ -301,11 +366,13 @@ exports.upcomingAlert = async (_req, res, next) => {
     const parking = await getParkingData();
     const amenities = await getAmenitiesData();
     const alert = computeAlertFromData(rooms, parking, amenities);
+    const liveSimulation = buildLiveSimulationInfo({ rooms, parking, amenities });
 
     return res.json({
       alert,
       amenities,
-      updatedAt: new Date().toISOString()
+      liveSimulation,
+      updatedAt: liveSimulation.updatedAt
     });
   } catch (err) {
     return next(err);
@@ -328,6 +395,7 @@ exports.dashboardLive = async (_req, res, next) => {
     const currentTime = `${hh}:${mm}:${ss}`;
 
     const timetableRows = await getTimetableRows(currentDay, currentTime);
+    const liveSimulation = buildLiveSimulationInfo({ rooms, parking, amenities, timetableRows });
     const nextClass = timetableRows[0] || null;
 
     const avgRoomFullness = rooms.length
@@ -435,11 +503,11 @@ exports.dashboardLive = async (_req, res, next) => {
     const sections = {
       signals: {
         subtitle: `Live merge: ${signals.timetable.subtitle} | ${signals.classrooms.subtitle} | ${signals.parking.subtitle}`,
-        callout: `Real campus snapshot: ${rooms.length} rooms, ${totalFreeParking}/${Math.max(totalParking, 1)} parking spots free, and live canteen/library simulation every 30s.`
+        callout: `Real campus snapshot: ${rooms.length} rooms, ${totalFreeParking}/${Math.max(totalParking, 1)} parking spots free, and live campus simulation every 1 minute.`
       },
       alerts: {
         subtitle: `Congestion currently at ${computeAlertFromData(rooms, parking, amenities).congestion}% with parking pressure focused around ${computeAlertFromData(rooms, parking, amenities).raw.topParkingPressure.zone}.`,
-        callout: `We detect crowd build-up from room occupancy + parking pressure and refresh the alert every 30 seconds.`
+        callout: `We detect crowd build-up from room occupancy + parking pressure and refresh the alert every minute.`
       },
       density: {
         subtitle: `Top crowded zones right now: ${density.map((d) => `${d.zone} (${d.crowdPct}%)`).join(', ') || 'No density data yet.'}`,
@@ -460,11 +528,12 @@ exports.dashboardLive = async (_req, res, next) => {
       density,
       spaces,
       amenities,
+      liveSimulation,
       stats,
       nextMove,
       alert,
       sections,
-      updatedAt: new Date().toISOString()
+      updatedAt: liveSimulation.updatedAt
     });
   } catch (err) {
     return next(err);
@@ -509,10 +578,15 @@ exports.timetableLive = async (req, res, next) => {
     };
 
     const queryRowsForDay = async (day, onlyFuture) => {
-      const baseSql = `
-        SELECT t.id, t.day, t.time_slot, t.room_name, t.course as course_code, t.course as course_name, t.instructor, t.expected_students,
-               c.current_occupancy,
-               c.capacity AS room_capacity,
+      const currentDay = days[now.getDay()];
+      const currentTime = istTimeStr;
+      
+      const baseSql = `SELECT 
+               t.course_code,
+               t.course_name,
+               t.room_name,
+               t.day,
+               t.time_slot,
                c.distance_from_main AS distance_from_central,
                SPLIT_PART(t.time_slot, '-', 1) AS start_time,
                SPLIT_PART(t.time_slot, '-', 2) AS end_time
@@ -589,9 +663,13 @@ exports.timetableLive = async (req, res, next) => {
     if (modeInput === 'day') {
       const selectedDay = selectedDayParam || currentDay;
       const rows = await queryRowsForDay(selectedDay, false);
+      const liveSimulation = buildLiveSimulationInfo({ rooms, parking, amenities, timetableRows: rows });
       const data = buildDayPayload(selectedDay, rows, false);
       data.liveAmenities = amenities;
       data.amenitySummary = amenitySummary;
+      data.liveParkingSummary = parkingSummary;
+      data.liveRoomSummary = roomSummary;
+      data.liveSimulation = liveSimulation;
       return res.json({ success: true, mode: 'day', data, timestamp: now.toISOString() });
     }
 
@@ -602,9 +680,13 @@ exports.timetableLive = async (req, res, next) => {
       }
 
       const rows = await queryRowsForDay(dateMeta.day, false);
+      const liveSimulation = buildLiveSimulationInfo({ rooms, parking, amenities, timetableRows: rows });
       const data = buildDayPayload(dateMeta.day, rows, false, dateMeta.dateLabel);
       data.liveAmenities = amenities;
       data.amenitySummary = amenitySummary;
+      data.liveParkingSummary = parkingSummary;
+      data.liveRoomSummary = roomSummary;
+      data.liveSimulation = liveSimulation;
       return res.json({ success: true, mode: 'date', data, timestamp: now.toISOString() });
     }
 
@@ -632,6 +714,8 @@ exports.timetableLive = async (req, res, next) => {
       }
 
       const allWeekClasses = weeklySchedule.reduce((sum, item) => sum + item.classes.length, 0);
+      const weekRows = weeklySchedule.flatMap((entry) => entry.classes || []);
+      const liveSimulation = buildLiveSimulationInfo({ rooms, parking, amenities, timetableRows: weekRows });
       return res.json({
         success: true,
         mode: 'week',
@@ -642,6 +726,9 @@ exports.timetableLive = async (req, res, next) => {
           weeklySchedule,
           liveAmenities: amenities,
           amenitySummary,
+          liveParkingSummary: parkingSummary,
+          liveRoomSummary: roomSummary,
+          liveSimulation,
           currentDay,
           currentTime
         },
@@ -650,6 +737,7 @@ exports.timetableLive = async (req, res, next) => {
     }
 
     const liveRows = await queryRowsForDay(currentDay, true);
+    const liveSimulation = buildLiveSimulationInfo({ rooms, parking, amenities, timetableRows: liveRows });
     let data = buildDayPayload(currentDay, liveRows, true);
 
     // If there are no remaining classes today, show the next day that has classes.
@@ -675,6 +763,9 @@ exports.timetableLive = async (req, res, next) => {
         ...data,
         liveAmenities: amenities,
         amenitySummary,
+        liveParkingSummary: parkingSummary,
+        liveRoomSummary: roomSummary,
+        liveSimulation,
       },
       timestamp: now.toISOString()
     });
